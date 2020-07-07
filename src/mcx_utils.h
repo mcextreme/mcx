@@ -40,6 +40,7 @@
 #define EPS                FLT_EPSILON                   /**< round-off limit */
 #define VERY_BIG           (1.f/FLT_EPSILON)             /**< a big number */
 
+#define MAX_FULL_PATH       2048                         /**< max characters in a full file name string */
 #define MAX_PATH_LENGTH     1024                         /**< max characters in a full file name string */
 #define MAX_SESSION_LENGTH  256                          /**< max session name length */
 #define MAX_DEVICE          256                          /**< max number of GPUs to be used */
@@ -54,8 +55,12 @@
 
 enum TOutputType {otFlux, otFluence, otEnergy, otJacobian, otWP, otDCS};   /**< types of output */
 enum TMCXParent  {mpStandalone, mpMATLAB};                          /**< whether MCX is run in binary or mex mode */
-enum TOutputFormat {ofMC2, ofNifti, ofAnalyze, ofUBJSON, ofTX3};           /**< output data format */
+enum TOutputFormat {ofMC2, ofNifti, ofAnalyze, ofUBJSON, ofTX3, ofJNifti, ofBJNifti};           /**< output data format */
 enum TBoundary {bcUnknown, bcReflect, bcAbsorb, bcMirror, bcCylic};            /**< boundary conditions */
+enum TBJData {JDB_mixed, JDB_nulltype, JDB_noop,JDB_true,JDB_false,
+     JDB_char,JDB_string,JDB_hp,JDB_int8,JDB_uint8,JDB_int16,JDB_int32,
+     JDB_int64,JDB_single,JDB_double,JDB_array,JDB_object,JDB_numtypes,
+     JDB_uint16=10,JDB_uint32,JDB_uint64};
 
 /**
  * The structure to store optical properties
@@ -177,7 +182,9 @@ typedef struct MCXConfig{
 	char issaveexit;             /**<1 save the exit position and dir of a detected photon, 0 do not save*/
 	char issaveref;              /**<1 save diffuse reflectance at the boundary voxels, 0 do not save*/
         char ismomentum;             /**<1 to save momentum transfer for detected photons, implies issavedet=1*/
-        char internalsrc;            /*1 all photons launch positions are inside non-zero voxels, 0 let mcx search entry point*/
+        char isdumpjson;             /**<1 to save json */
+        char internalsrc;            /**<1 all photons launch positions are inside non-zero voxels, 0 let mcx search entry point*/
+	int  zipid;                  /**<data zip method "zlib","gzip","base64","lzip","lzma","lz4","lz4hc"*/
 	char srctype;                /**<0:pencil,1:isotropic,2:cone,3:gaussian,4:planar,5:pattern,\
                                          6:fourier,7:arcsine,8:disk,9:fourierx,10:fourierx2d,11:zgaussian,12:line,13:slit*/
         char outputtype;             /**<'X' output is flux, 'F' output is fluence, 'E' energy deposit*/
@@ -202,6 +209,7 @@ typedef struct MCXConfig{
 	void *seeddata;              /**<poiinter to a buffer where detected photon seeds are stored*/
         int replaydet;               /**<the detector id for which to replay the detected photons, start from 1*/
         char seedfile[MAX_PATH_LENGTH];/**<if the seed is specified as a file (mch), mcx will replay the photons*/
+        char jsonfile[MAX_PATH_LENGTH];/**<if the seed is specified as a file (mch), mcx will replay the photons*/
         unsigned int debuglevel;     /**<a flag to control the printing of the debug information*/
         unsigned int savedetflag;    /**<a flag to control the output fields of detected photon data*/
         char deviceid[MAX_DEVICE];   /**<a 0-1 mask for all the GPUs, a mask of 1 means this GPU will be used*/
@@ -237,7 +245,7 @@ void mcx_clearcfg(Config *cfg);
 void mcx_parsecmd(int argc, char* argv[], Config *cfg);
 void mcx_usage(Config *cfg,char *exename);
 void mcx_printheader(Config *cfg);
-void mcx_loadvolume(char *filename,Config *cfg);
+void mcx_loadvolume(char *filename,Config *cfg,int isbuf);
 void mcx_normalize(float field[], float scale, int fieldlen, int option, int pidx, int srcnum);
 void mcx_kahanSum(float *sum, float *kahanc, float input);
 int  mcx_readarg(int argc, char *argv[], int id, void *output,const char *type);
@@ -247,6 +255,8 @@ void mcx_maskdet(Config *cfg);
 void mcx_dumpmask(Config *cfg);
 void mcx_version(Config *cfg);
 void mcx_convertrow2col(unsigned int **vol, uint3 *dim);
+void mcx_convertcol2row(unsigned int **vol, uint3 *dim);
+void mcx_convertcol2row4d(unsigned int **vol, uint4 *dim);
 int  mcx_loadjson(cJSON *root, Config *cfg);
 int  mcx_keylookup(char *key, const char *table[]);
 int  mcx_lookupindex(char *key, const char *index);
@@ -259,6 +269,12 @@ void mcx_progressbar(float percent, Config *cfg);
 void mcx_flush(Config *cfg);
 int  mcx_run_from_json(char *jsonstr);
 float mcx_updatemua(unsigned int mediaid, Config *cfg);
+void mcx_savejdata(char *filename, Config *cfg);
+int  mcx_jdataencode(void *vol,  int ndim, uint *dims, char *type, int byte, int zipid, void *obj, int isubj, Config *cfg);
+int  mcx_jdatadecode(void **vol, int *ndim, uint *dims, int maxdim, char **type, cJSON *obj, Config *cfg);
+void mcx_savejnii(float *vol, int ndim, uint *dims, float *voxelsize, char* name, int isfloat, Config *cfg);
+void mcx_savebnii(float *vol, int ndim, uint *dims, float *voxelsize, char* name, int isfloat, Config *cfg);
+void mcx_savejdet(float *ppath, void *seeds, uint count, int doappend, Config *cfg);
 
 #ifdef MCX_CONTAINER
 #ifdef __cplusplus

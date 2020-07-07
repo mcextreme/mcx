@@ -49,6 +49,8 @@
 #define MCX_DEBUG_MOVE      2
 #define MCX_DEBUG_PROGRESS  4
 
+#define MEDIA_2LABEL_MIX      98   /**<  media format: {[int: label1][int: label2][float32: label1 %]} -> 32bit:{[half: label1 %],[byte: label2],[byte: label1]} */
+#define MEDIA_LABEL_HALF      99   /**<  media format: {[float32: 1/2/3/4][float32: type][float32: mua/mus/g/n]} -> 32bit:{[half: mua/mus/g/n][int16: [B15-B16: 0/1/2/3][B1-B14: tissue type]} */
 #define MEDIA_AS_F2H          100  /**<  media format: {[float32: mua][float32: mus]} -> 32bit:{[half: mua],{half: mus}} */
 #define MEDIA_MUA_FLOAT       101  /**<  media format: 32bit:{[float32: mua]} */
 #define MEDIA_AS_HALF         102  /**<  media format: 32bit:{[half: mua],[half: mus]} */
@@ -98,15 +100,15 @@
 #define UNSET_SAVE_VEXIT(a)     ((a) & ~(0x1<<5))   /**<  save exit vector/directions */
 #define UNSET_SAVE_W0(a)        ((a) & ~(0x1<<6))   /**<  save initial weight */
 
-#ifndef MCX_CONTAINER
+#if !defined(MCX_CONTAINER) && !defined(_MSC_VER)
   #define S_RED     "\x1b[31m"
   #define S_GREEN   "\x1b[32m"
   #define S_YELLOW  "\x1b[33m"
   #define S_BLUE    "\x1b[34m"
   #define S_MAGENTA "\x1b[35m"
   #define S_CYAN    "\x1b[36m"
-  #define S_BOLD     "\x1b[1m"
-  #define S_ITALIC   "\x1b[3m"
+  #define S_BOLD    "\x1b[1m"
+  #define S_ITALIC  "\x1b[3m"
   #define S_RESET   "\x1b[0m"
 #else
   #define S_RED

@@ -18,16 +18,19 @@ MKDIR      := mkdir
 
 CUDACC=nvcc
 MEX=mex
-AR=$(CC)
+AR=$(CXX)
 
 BINARY=mcx
+MAKE=make
 OUTPUT_DIR=$(MCXDIR)/bin
 
 DOXY       := doxygen
 DOCDIR     := $(MCXDIR)/doc
 DOXYCFG=mcxdoxy.cfg
+ZMATLIB    :=libzmat.a
+USERLINKOPT?=$(ZMATLIB) -lz
 
-INCLUDEDIRS=-I/usr/local/cuda/include
+INCLUDEDIRS=-Izmat -Izmat/easylzma -I/usr/local/cuda/include -Iubj
 
 CUDART=-lcudart
 CUOMPLINK=
@@ -55,12 +58,12 @@ DLLFLAG=-fPIC
 OMP=-fopenmp
 CUDA_STATIC=--cudart static -Xcompiler "-static-libgcc -static-libstdc++"
 
-CPPOPT=-g -Wall -std=c99 # -DUSE_OS_TIMER
+CPPOPT=-g -Wall -std=c99 #-DNO_LZMA # -DUSE_OS_TIMER
 
 OBJSUFFIX=.o
 EXESUFFIX=
 
-FILES=mcx_core mcx_utils mcx_shapes tictoc mcextreme cjson/cJSON
+FILES=mcx_core mcx_utils mcx_shapes tictoc mcextreme cjson/cJSON ubj/ubjw
 
 ifeq ($(findstring CYGWIN,$(PLATFORM)), CYGWIN)
   CC=nvcc
@@ -71,7 +74,7 @@ ifeq ($(findstring CYGWIN,$(PLATFORM)), CYGWIN)
       LINKOPT=-L"$(CUDA_PATH)/lib/Win32" $(CUDART)
   endif
   INCLUDEDIRS +=-I"$(CUDA_PATH)/lib/include"
-  CPPOPT =-c -D_CRT_SECURE_NO_DEPRECATE -DWIN32
+  CPPOPT =-c -D_CRT_SECURE_NO_DEPRECATE -DWIN32 #-DNO_LZMA
   OBJSUFFIX=.obj
   EXESUFFIX=.exe
   DLLFLAG=
@@ -80,6 +83,8 @@ ifeq ($(findstring CYGWIN,$(PLATFORM)), CYGWIN)
   CUCCOPT+=-Xcompiler "$(OMP) /W0"
   CUDA_STATIC=--cudart static -Xcompiler $(OMP) -Xcompiler /MT
   CPPOPT+=-Xcompiler $(OMP)
+  ZMATLIB    :=zmat/zmatlib.obj zmat/lz4/lz4.obj zmat/lz4/lz4hc.obj zmat/easylzma/*.obj zmat/easylzma/pavlov/*.obj
+  USERLINKOPT:=$(ZMATLIB) -lzlib
 else ifeq ($(findstring Darwin,$(PLATFORM)), Darwin)
   CUDA_STATIC=--cudart static
   CPPOPT+=$(OMP)
@@ -225,7 +230,7 @@ makedirs:
 makedocdir:
 	@if test ! -d $(DOCDIR); then $(MKDIR) $(DOCDIR); fi
 
-$(OUTPUT_DIR)/$(BINARY): makedirs $(OBJS)
+$(OUTPUT_DIR)/$(BINARY): makedirs $(ZMATLIB) $(OBJS)
 $(OUTPUT_DIR)/$(BINARY): $(OBJS)
 	$(AR) $(OBJS) $(OUTPUTFLAG) $(OUTPUT_DIR)/$(BINARY) $(LINKOPT) $(USERLINKOPT)
 
@@ -235,8 +240,11 @@ $(OUTPUT_DIR)/$(BINARY): $(OBJS)
 %$(OBJSUFFIX): %.cu
 	$(CUDACC) -c $(CUCCOPT) -o $@  $<
 
+$(ZMATLIB):
+	-$(MAKE) -C zmat lib AR=ar CPPOPT="$(DLLFLAG)" USERLINKOPT=
 clean:
-	-rm -f $(OBJS) $(OUTPUT_DIR)/$(BINARY)$(EXESUFFIX) $(OUTPUT_DIR)/$(BINARY)_atomic$(EXESUFFIX) $(OUTPUT_DIR)/$(BINARY)_det$(EXESUFFIX)
+	-$(MAKE) -C zmat clean
+	-rm -f $(OBJS) $(OUTPUT_DIR)/$(BINARY)$(EXESUFFIX) $(OUTPUT_DIR)/$(BINARY)_atomic$(EXESUFFIX) $(OUTPUT_DIR)/$(BINARY)_det$(EXESUFFIX) $(ZMATLIB)
 cudasdk:
 	@if [ -z `which ${CUDACC}` ]; then \
 	   echo "Please first install CUDA SDK and add the path to nvcc to your PATH environment variable."; exit 1;\

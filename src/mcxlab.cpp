@@ -103,7 +103,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
   int        threadid=0;
   const char       *outputtag[]={"data"};
   const char       *datastruct[]={"data","stat","dref"};
-  const char       *statstruct[]={"runtime","nphoton","energytot","energyabs","normalizer","workload"};
+  const char       *statstruct[]={"runtime","nphoton","energytot","energyabs","normalizer","unitinmm","workload"};
   const char       *gpuinfotag[]={"name","id","devcount","major","minor","globalmem",
                                   "constmem","sharedmem","regcount","clock","sm","core",
                                   "autoblock","autothread","maxgate"};
@@ -344,7 +344,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
             cfg.exportfield=NULL;
 
             /** also return the run-time info in outut.runtime */
-            mxArray *stat=mxCreateStructMatrix(1,1,6,statstruct);
+            mxArray *stat=mxCreateStructMatrix(1,1,7,statstruct);
             mxArray *val = mxCreateDoubleMatrix(1,1,mxREAL);
             *mxGetPr(val) = cfg.runtime;
             mxSetFieldByNumber(stat,0,0, val);
@@ -369,11 +369,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
             *mxGetPr(val) = cfg.normalizer;
             mxSetFieldByNumber(stat,0,4, val);
 
+            /** return the voxel size unitinmm */
+            val = mxCreateDoubleMatrix(1,1,mxREAL);
+            *mxGetPr(val) = cfg.unitinmm;
+            mxSetFieldByNumber(stat,0,5, val);
+
             /** return the relative workload between multiple GPUs */
             val = mxCreateDoubleMatrix(1,activedev,mxREAL);
 	    for(int i=0;i<activedev;i++)
                 *(mxGetPr(val)+i) = cfg.workload[i];
-            mxSetFieldByNumber(stat,0,5, val);
+            mxSetFieldByNumber(stat,0,6, val);
 
 	    mxSetFieldByNumber(plhs[0],jstruct,1, stat);
         }
@@ -475,6 +480,10 @@ void mcx_set_field(const mxArray *root,const mxArray *item,int idx, Config *cfg)
 	}else if(mxGetNumberOfDimensions(item)==4){ // if dimension is 4D, 1st dim is the property records: mua/mus/g/n
 	    if((mxIsUint8(item) || mxIsInt8(item)) && arraydim[0]==4) // if 4D byte array has a 1st dim of 4
 		 cfg->mediabyte=MEDIA_ASGN_BYTE;
+	    else if(mxIsSingle(item) && arraydim[0]==3)
+		 cfg->mediabyte=MEDIA_LABEL_HALF;
+	    else if((mxIsUint16(item) || mxIsInt16(item)) && arraydim[0]==3)
+		 cfg->mediabyte=MEDIA_2LABEL_MIX;
 	    else if((mxIsUint16(item) || mxIsInt16(item)) && arraydim[0]==2)// if 4D short array has a 1st dim of 2
 		 cfg->mediabyte=MEDIA_AS_SHORT;
 	    else if(mxIsSingle(item) && arraydim[0]==2) // if 4D float32 array has a 1st dim of 2
@@ -535,6 +544,47 @@ void mcx_set_field(const mxArray *root,const mxArray *item,int idx, Config *cfg)
 		    f2h.h[1] |= (f2h.i[1] >> 13) & 0x3ff;
 
 	            cfg->vol[i]=f2h.i[0];
+		}
+	    }else if(cfg->mediabyte==MEDIA_LABEL_HALF){
+		float *val=(float *)mxGetPr(item);
+		union{
+		    float f[3];
+		    unsigned int i[3];
+		    unsigned short h[2];
+		    unsigned char c[4];
+		} f2bh;
+		unsigned short tmp;
+		for(i=0;i<dimxyz;i++){
+		    f2bh.f[2]=val[i*3];
+		    f2bh.f[1]=val[i*3+1];
+		    f2bh.f[0]=val[i*3+2];
+
+		    if(f2bh.f[1]<0.f || f2bh.f[1]>=4.f || f2bh.f[0]<0.f )
+		        mexErrMsgTxt("the 2nd volume must have an integer value between 0 and 3");
+
+		    f2bh.h[0]=( (((unsigned char)(f2bh.f[1]) & 0x3) << 14) | (unsigned short)(f2bh.f[0]) );
+
+		    f2bh.h[1] = (f2bh.i[2] >> 31) << 5;
+		    tmp = (f2bh.i[2] >> 23) & 0xff;
+		    tmp = (tmp - 0x70) & ((unsigned int)((int)(0x70 - tmp) >> 4) >> 27);
+		    f2bh.h[1] = (f2bh.h[1] | tmp) << 10;
+		    f2bh.h[1] |= (f2bh.i[2] >> 13) & 0x3ff;
+
+	            cfg->vol[i]=f2bh.i[0];
+		}
+	    }else if(cfg->mediabyte==MEDIA_2LABEL_MIX){
+		unsigned short *val=(unsigned short *)mxGetPr(item);
+		union{
+		    unsigned short h[2];
+		    unsigned char  c[4];
+		    unsigned int   i[1];
+		} f2bh;
+		unsigned short tmp;
+		for(i=0;i<dimxyz;i++){
+		    f2bh.c[0]=val[i*3]   & 0xFF;
+		    f2bh.c[1]=val[i*3+1] & 0xFF;
+		    f2bh.h[1]=val[i*3+2] & 0x7FFF;
+	            cfg->vol[i]=f2bh.i[0];
 		}
 	    }
 	}
@@ -729,7 +779,7 @@ void mcx_set_field(const mxArray *root,const mxArray *item,int idx, Config *cfg)
 	     cfg->workload[i]=val[i];
         printf("mcx.workload=<<%d>>;\n",arraydim[0]*arraydim[1]);
     }else{
-        printf(S_RED"WARNING: redundant field '%s'\n"S_RESET,name);
+        printf(S_RED "WARNING: redundant field '%s'\n" S_RESET,name);
     }
     if(jsonshapes){
         Grid3D grid={&(cfg->vol),&(cfg->dim),{1.f,1.f,1.f},0};
@@ -907,7 +957,7 @@ void mcx_validate_config(Config *cfg){
         if(cfg->seed==SEED_FROM_FILE){
             if(cfg->respin>1 || cfg->respin<0){
 	       cfg->respin=1;
-	       fprintf(stderr,S_RED"WARNING: respin is disabled in the replay mode\n"S_RESET);
+	       fprintf(stderr,S_RED "WARNING: respin is disabled in the replay mode\n" S_RESET);
 	    }
         }
      }
