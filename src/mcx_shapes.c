@@ -2,7 +2,7 @@
 **  \mainpage Monte Carlo eXtreme - GPU accelerated Monte Carlo Photon Migration
 **
 **  \author Qianqian Fang <q.fang at neu.edu>
-**  \copyright Qianqian Fang, 2009-2018
+**  \copyright Qianqian Fang, 2009-2021
 **
 **  \section sref Reference:
 **  \li \c (\b Fang2009) Qianqian Fang and David A. Boas, 
@@ -11,7 +11,12 @@
 **          by Graphics Processing Units,"</a> Optics Express, 17(22) 20178-20190 (2009).
 **  \li \c (\b Yu2018) Leiming Yu, Fanny Nina-Paravecino, David Kaeli, and Qianqian Fang,
 **          "Scalable and massively parallel Monte Carlo photon transport
-**           simulations for heterogeneous computing platforms," J. Biomed. Optics, 23(1), 010504, 2018.
+**           simulations for heterogeneous computing platforms," J. Biomed. Optics, 
+**           23(1), 010504, 2018. https://doi.org/10.1117/1.JBO.23.1.010504
+**  \li \c (\b Yan2020) Shijie Yan and Qianqian Fang* (2020), "Hybrid mesh and voxel 
+**          based Monte Carlo algorithm for accurate and efficient photon transport 
+**          modeling in complex bio-tissues," Biomed. Opt. Express, 11(11) 
+**          pp. 6262-6270. https://doi.org/10.1364/BOE.409468
 **
 **  \section slicense License
 **          GPL v3, see LICENSE.txt for details
@@ -446,15 +451,15 @@ int mcx_raster_slabs(cJSON *obj, Grid3D *g){
         return 1;
     }
     val=cJSON_GetObjectItem(obj,"Bound");
-    if(val){
+    if(val && val->type==cJSON_Array){
        num=cJSON_GetArraySize(val);
        if(num==0) return 0;
-       if(num==2 && obj->child->type!=cJSON_Array){
-          item=obj;
+       if(num==2 && val->child->type!=cJSON_Array){
+          item=val;
 	  bd=(float *)malloc(cJSON_GetArraySize(obj)*sizeof(float));
 	  num=1;
        }else{
-          item=obj->child;
+          item=val->child;
           bd=(float *)malloc(cJSON_GetArraySize(obj)*2*sizeof(float));
        }
        for(i=0;i<num;i++){
@@ -472,7 +477,7 @@ int mcx_raster_slabs(cJSON *obj, Grid3D *g){
            item=item->next;
        }
     }else{
-       sprintf(ErrorMsg,"A %s command misses Bound field",obj->string);
+       sprintf(ErrorMsg,"A %s command misses Bound field or not an array",obj->string);
        return 1;
     }
 

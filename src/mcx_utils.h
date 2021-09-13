@@ -2,7 +2,7 @@
 **  \mainpage Monte Carlo eXtreme - GPU accelerated Monte Carlo Photon Migration
 **
 **  \author Qianqian Fang <q.fang at neu.edu>
-**  \copyright Qianqian Fang, 2009-2018
+**  \copyright Qianqian Fang, 2009-2021
 **
 **  \section sref Reference:
 **  \li \c (\b Fang2009) Qianqian Fang and David A. Boas, 
@@ -11,7 +11,12 @@
 **          by Graphics Processing Units,"</a> Optics Express, 17(22) 20178-20190 (2009).
 **  \li \c (\b Yu2018) Leiming Yu, Fanny Nina-Paravecino, David Kaeli, and Qianqian Fang,
 **          "Scalable and massively parallel Monte Carlo photon transport
-**           simulations for heterogeneous computing platforms," J. Biomed. Optics, 23(1), 010504, 2018.
+**           simulations for heterogeneous computing platforms," J. Biomed. Optics, 
+**           23(1), 010504, 2018. https://doi.org/10.1117/1.JBO.23.1.010504
+**  \li \c (\b Yan2020) Shijie Yan and Qianqian Fang* (2020), "Hybrid mesh and voxel 
+**          based Monte Carlo algorithm for accurate and efficient photon transport 
+**          modeling in complex bio-tissues," Biomed. Opt. Express, 11(11) 
+**          pp. 6262-6270. https://doi.org/10.1364/BOE.409468
 **
 **  \section slicense License
 **          GPL v3, see LICENSE.txt for details
@@ -22,7 +27,7 @@
 
 @brief   MCX configuration header
 *******************************************************************************/
-                                                                                         
+
 #ifndef _MCEXTREME_UTILITIES_H
 #define _MCEXTREME_UTILITIES_H
 
@@ -53,10 +58,10 @@
 #define MIN(a,b)           ((a)<(b)?(a):(b))             /**< macro to get the min values of two numbers */
 #define MAX(a,b)           ((a)>(b)?(a):(b))             /**< macro to get the max values of two numbers */
 
-enum TOutputType {otFlux, otFluence, otEnergy, otJacobian, otWP, otDCS};   /**< types of output */
+enum TOutputType {otFlux, otFluence, otEnergy, otJacobian, otWP, otDCS, otRF};   /**< types of output */
 enum TMCXParent  {mpStandalone, mpMATLAB};                          /**< whether MCX is run in binary or mex mode */
 enum TOutputFormat {ofMC2, ofNifti, ofAnalyze, ofUBJSON, ofTX3, ofJNifti, ofBJNifti};           /**< output data format */
-enum TBoundary {bcUnknown, bcReflect, bcAbsorb, bcMirror, bcCylic};            /**< boundary conditions */
+enum TBoundary {bcUnknown, bcReflect, bcAbsorb, bcMirror, bcCyclic};            /**< boundary conditions */
 enum TBJData {JDB_mixed, JDB_nulltype, JDB_noop,JDB_true,JDB_false,
      JDB_char,JDB_string,JDB_hp,JDB_int8,JDB_uint8,JDB_int16,JDB_int32,
      JDB_int64,JDB_single,JDB_double,JDB_array,JDB_object,JDB_numtypes,
@@ -74,7 +79,7 @@ typedef struct MCXMedium{
 } Medium;
 
 /**
- * Filer header data structure to .mch files to store detected photon data 
+ * Header data structure in .mch/.mct files to store detected photon data 
  * This header has a total of 256 bytes
  */
 
@@ -130,7 +135,7 @@ typedef struct MCXGPUInfo {
 	int maxmpthread;              /**< maximum thread number per multi-processor */
 } GPUInfo;
 
-/*! \struct MCXConfig
+/**
  * Data structure for MCX simulation settings
  */
 
@@ -160,7 +165,7 @@ typedef struct MCXConfig{
 	float4 *detpos;               /**<detector positions and radius, overwrite detradius*/
 
 	unsigned int maxgate;         /**<simultaneous recording gates*/
-	int respin;          /**<number of repeatitions*/
+	int respin;                   /**<number of repeatitions (if positive), or number of divisions (if negative)*/
 	unsigned int printnum;        /**<number of printed threads (for debugging)*/
 	int gpuid;                    /**<the ID of the GPU to use, starting from 1, 0 for auto*/
 
@@ -192,6 +197,7 @@ typedef struct MCXConfig{
 	char faststep;               /**<1 use tMCimg-like approximated photon stepping (obsolete) */
         float minenergy;             /**<minimum energy to propagate photon*/
 	float unitinmm;              /**<defines the length unit in mm for grid*/
+        float omega;                 /**<modulation angular frequency (2*pi*f), in rad/s, for FD/RF replay*/
         FILE *flog;                  /**<stream handle to print log information*/
         History his;                 /**<header info of the history file*/
 	float *exportfield;          /**<memory buffer when returning the flux to external programs such as matlab*/
@@ -199,6 +205,7 @@ typedef struct MCXConfig{
 	unsigned long int detectedcount;  /**<total number of detected photons*/
         char rootpath[MAX_PATH_LENGTH]; /**<sets the input and output root folder*/
         char *shapedata;             /**<a pointer points to a string defining the JSON-formatted shape data*/
+        char *extrajson;             /**<a pointer points to a string defining the extra JSON input data*/
 	int maxvoidstep;             /**< max number of steps that a photon can advance before reaching a non-zero voxel*/
 	int voidtime;                /**<1 start counting photon time when moves inside 0 voxels; 0: count time only after enters non-zero voxel*/
 	float4 srcparam1;            /**<a quadruplet {x,y,z,w} for additional source parameters*/
@@ -226,8 +233,12 @@ typedef struct MCXConfig{
 	unsigned int gscatter;       /**<after how many scattering events that we can use mus' instead of mus */
 	float *exportdebugdata;      /**<pointer to the buffer where the photon trajectory data are stored*/
 	uint mediabyte;              /**< how many bytes per media index, mcx supports 1, 2 and 4, 4 is the default*/
-	float *dx, *dy, *dz;         /**< anisotropic voxel spacing for x,y,z axis */
-	char bc[8];                  /**<boundary condition flag for [-x,-y,-z,+x,+y,+z,unused,unused] */
+	float *dx;                   /**< anisotropic voxel spacing for x-axis */
+	float *dy;                   /**< anisotropic voxel spacing for y-axis */
+	float *dz;                   /**< anisotropic voxel spacing for z-axis */
+	char bc[12];                 /**<boundary condition flag for [-x,-y,-z,+x,+y,+z, det(-x,-y,-z,+x,+y,+z)] */
+	unsigned int nphase;         /**< number of samples for inverse-cdf, will be added by 2 to include -1 and 1 on the two ends */
+	float *invcdf;               /**< equal-space sampled inversion of CDF(cos(theta)) for the phase function of the zenith angle */
 } Config;
 
 #ifdef	__cplusplus
@@ -242,6 +253,7 @@ void mcx_readconfig(char *fname, Config *cfg);
 void mcx_writeconfig(char *fname, Config *cfg);
 void mcx_initcfg(Config *cfg);
 void mcx_clearcfg(Config *cfg);
+void mcx_preprocess(Config *cfg);
 void mcx_parsecmd(int argc, char* argv[], Config *cfg);
 void mcx_usage(Config *cfg,char *exename);
 void mcx_printheader(Config *cfg);
@@ -255,6 +267,7 @@ void mcx_maskdet(Config *cfg);
 void mcx_dumpmask(Config *cfg);
 void mcx_version(Config *cfg);
 void mcx_convertrow2col(unsigned int **vol, uint3 *dim);
+void mcx_convertrow2col64(size_t **vol, uint3 *dim);
 void mcx_convertcol2row(unsigned int **vol, uint3 *dim);
 void mcx_convertcol2row4d(unsigned int **vol, uint4 *dim);
 int  mcx_loadjson(cJSON *root, Config *cfg);
@@ -275,6 +288,8 @@ int  mcx_jdatadecode(void **vol, int *ndim, uint *dims, int maxdim, char **type,
 void mcx_savejnii(float *vol, int ndim, uint *dims, float *voxelsize, char* name, int isfloat, Config *cfg);
 void mcx_savebnii(float *vol, int ndim, uint *dims, float *voxelsize, char* name, int isfloat, Config *cfg);
 void mcx_savejdet(float *ppath, void *seeds, uint count, int doappend, Config *cfg);
+int  mcx_svmc_bgvoxel(int vol);
+void mcx_loadseedjdat(char *filename, Config *cfg);
 
 #ifdef MCX_CONTAINER
 #ifdef __cplusplus
@@ -286,12 +301,12 @@ extern "C"
 
 #ifdef MCX_CONTAINER
  #ifdef _OPENMP
-  #define MCX_FPRINTF(fp,...) {if(omp_get_thread_num()==0) mexPrintf(__VA_ARGS__);}
+  #define MCX_FPRINTF(fp,...) {if(omp_get_thread_num()==0) mexPrintf(__VA_ARGS__);}  /**< macro to print messages, calls mexPrint if inside MATLAB */
  #else
-  #define MCX_FPRINTF(fp,...) mexPrintf(__VA_ARGS__)
+  #define MCX_FPRINTF(fp,...) mexPrintf(__VA_ARGS__) /**< macro to print messages, calls mexPrint in MATLAB */
  #endif
 #else
-  #define MCX_FPRINTF(fp,...) fprintf(fp,__VA_ARGS__)
+  #define MCX_FPRINTF(fp,...) fprintf(fp,__VA_ARGS__) /**< macro to print messages, calls fprintf in command line mode */
 #endif
 
 #if defined(MATLAB_MEX_FILE) || defined(OCTAVE_API_VERSION_NUMBER)

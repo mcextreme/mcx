@@ -2,7 +2,7 @@
 **  \mainpage Monte Carlo eXtreme - GPU accelerated Monte Carlo Photon Migration
 **
 **  \author Qianqian Fang <q.fang at neu.edu>
-**  \copyright Qianqian Fang, 2009-2018
+**  \copyright Qianqian Fang, 2009-2021
 **
 **  \section sref Reference:
 **  \li \c (\b Fang2009) Qianqian Fang and David A. Boas, 
@@ -11,7 +11,12 @@
 **          by Graphics Processing Units,"</a> Optics Express, 17(22) 20178-20190 (2009).
 **  \li \c (\b Yu2018) Leiming Yu, Fanny Nina-Paravecino, David Kaeli, and Qianqian Fang,
 **          "Scalable and massively parallel Monte Carlo photon transport
-**           simulations for heterogeneous computing platforms," J. Biomed. Optics, 23(1), 010504, 2018.
+**           simulations for heterogeneous computing platforms," J. Biomed. Optics, 
+**           23(1), 010504, 2018. https://doi.org/10.1117/1.JBO.23.1.010504
+**  \li \c (\b Yan2020) Shijie Yan and Qianqian Fang* (2020), "Hybrid mesh and voxel 
+**          based Monte Carlo algorithm for accurate and efficient photon transport 
+**          modeling in complex bio-tissues," Biomed. Opt. Express, 11(11) 
+**          pp. 6262-6270. https://doi.org/10.1364/BOE.409468
 **
 **  \section slicense License
 **          GPL v3, see LICENSE.txt for details
@@ -33,20 +38,38 @@ extern "C" {
 #endif
 
 
-#define ABS(a)  ((a)<0?-(a):(a))
-#define DETINC	32
+#define ABS(a)  ((a)<0?-(a):(a))                 /**< macro to take absolute value */
 
+/**
+  * To avoid round-off errors when adding very small number to large number, we 
+  * split the GPU accumulation array into 2 copies, if the first copy exceeds 
+  * this limit, we add the first copy to the 2nd copy, and clear the first one.
+  * See https://github.com/fangq/mcx/issues/41 for details
+  */
 #define MAX_ACCUM           1000.f
 
-#define ROULETTE_SIZE       10.f                /**< Russian Roulette size */
+#define ROULETTE_SIZE       10.f                  /**< Russian Roulette size */
 
 #ifdef  MCX_DEBUG
-#define GPUDEBUG(x)        printf x             /**< enable debugging in CPU mode */
+  #define GPUDEBUG(x)        printf x             /**< enable debugging in CPU mode */
 #else
-#define GPUDEBUG(x)
+  #define GPUDEBUG(x)                             /**< printing commands are ignored if MCX_DEBUG macro is not defined */
 #endif
 
 typedef float4 MCXpos; /**< x,y,z: position of the photon, w: weight of the photon*/
+
+typedef struct __align__(16) SplitVoxel{
+	unsigned char issplit; /**< flag if a photon is inside a mixed voxel*/
+	unsigned char lower;   /**< label of the tissue type at -nv direction (lower region)*/
+	unsigned char upper;   /**< label of the tissue type at +nv direction (upper region)*/
+	unsigned char isupper; /**< flag if a photon is in the upper region*/
+}SVox;
+
+typedef struct __align__(16) MCXSplit{
+	SVox   sv; /**< indicator of tissue type under split-voxel MC (SVMC) mode*/
+	float3 rp; /**< reference point of the intra-voxel interface*/
+	float3 nv; /**< normal vector of the intra-voxel interafece (direction: lower -> upper)*/
+}MCXsp;
 
 typedef struct  __align__(16) MCXDir{
         float x; /**< directional vector of the photon, x-component*/
@@ -148,7 +171,9 @@ typedef struct  __align__(16) KernelParams {
   unsigned int is2d;                 /**< is the domain a 2D slice? */
   int replaydet;                     /**< select which detector to replay, 0 for all, -1 save all separately */
   unsigned int srcnum;               /**< total number of source patterns */
-  unsigned char bc[8];               /**< boundary conditions */
+  unsigned int nphase;               /**< number of samples for inverse-cdf, will be added by 2 to include -1 and 1 on the two ends */
+  float omega;                       /**< modulation frequency in Hz for RF/FD simulations */
+  unsigned char bc[12];              /**< boundary conditions */
 }MCXParam;
 
 void mcx_run_simulation(Config *cfg,GPUInfo *gpu);

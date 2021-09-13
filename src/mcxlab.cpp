@@ -2,7 +2,7 @@
 **  \mainpage Monte Carlo eXtreme - GPU accelerated Monte Carlo Photon Migration
 **
 **  \author Qianqian Fang <q.fang at neu.edu>
-**  \copyright Qianqian Fang, 2009-2018
+**  \copyright Qianqian Fang, 2009-2021
 **
 **  \section sref Reference:
 **  \li \c (\b Fang2009) Qianqian Fang and David A. Boas, 
@@ -11,12 +11,16 @@
 **          by Graphics Processing Units,"</a> Optics Express, 17(22) 20178-20190 (2009).
 **  \li \c (\b Yu2018) Leiming Yu, Fanny Nina-Paravecino, David Kaeli, and Qianqian Fang,
 **          "Scalable and massively parallel Monte Carlo photon transport
-**           simulations for heterogeneous computing platforms," J. Biomed. Optics, 23(1), 010504, 2018.
+**           simulations for heterogeneous computing platforms," J. Biomed. Optics, 
+**           23(1), 010504, 2018. https://doi.org/10.1117/1.JBO.23.1.010504
+**  \li \c (\b Yan2020) Shijie Yan and Qianqian Fang* (2020), "Hybrid mesh and voxel 
+**          based Monte Carlo algorithm for accurate and efficient photon transport 
+**          modeling in complex bio-tissues," Biomed. Opt. Express, 11(11) 
+**          pp. 6262-6270. https://doi.org/10.1364/BOE.409468
 **
 **  \section slicense License
 **          GPL v3, see LICENSE.txt for details
 *******************************************************************************/
-
 
 /***************************************************************************//**
 \file    mcxlab.cpp
@@ -50,32 +54,28 @@
     #define RAND_WORD_LEN 4       /**< number of Words per RNG state */
 #endif
 
-/**<  Macro to read the 1st scalar cfg member */
+/**  Macro to read the 1st scalar cfg member */
 #define GET_1ST_FIELD(x,y)  if(strcmp(name,#y)==0) {double *val=mxGetPr(item);x->y=val[0];printf("mcx.%s=%g;\n",#y,(float)(x->y));}
 
-/**<  Macro to read one scalar cfg member */
+/**  Macro to read one scalar cfg member */
 #define GET_ONE_FIELD(x,y)  else GET_1ST_FIELD(x,y)
 
-/**<  Macro to read one 3-element vector member of cfg */
+/**  Macro to read one 3-element vector member of cfg */
 #define GET_VEC3_FIELD(u,v) else if(strcmp(name,#v)==0) {double *val=mxGetPr(item);u->v.x=val[0];u->v.y=val[1];u->v.z=val[2];\
                                  printf("mcx.%s=[%g %g %g];\n",#v,(float)(u->v.x),(float)(u->v.y),(float)(u->v.z));}
 
-/**<  Macro to read one 3- or 4-element vector member of cfg */
+/**  Macro to read one 3- or 4-element vector member of cfg */
 #define GET_VEC34_FIELD(u,v) else if(strcmp(name,#v)==0) {double *val=mxGetPr(item);u->v.x=val[0];u->v.y=val[1];u->v.z=val[2];if(mxGetNumberOfElements(item)==4) u->v.w=val[3];\
                                  printf("mcx.%s=[%g %g %g %g];\n",#v,(float)(u->v.x),(float)(u->v.y),(float)(u->v.z),(float)(u->v.w));}
 
-/**<  Macro to read one 4-element vector member of cfg */
+/**  Macro to read one 4-element vector member of cfg */
 #define GET_VEC4_FIELD(u,v) else if(strcmp(name,#v)==0) {double *val=mxGetPr(item);u->v.x=val[0];u->v.y=val[1];u->v.z=val[2];u->v.w=val[3];\
                                  printf("mcx.%s=[%g %g %g %g];\n",#v,(float)(u->v.x),(float)(u->v.y),(float)(u->v.z),(float)(u->v.w));}
 
-/**<  Macro to output GPU parameters as field */
+/**  Macro to output GPU parameters as field */
 #define SET_GPU_INFO(output,id,v)  mxSetField(output,id,#v,mxCreateDoubleScalar(gpuinfo[i].v));
 
-#if (! defined MX_API_VER) || (MX_API_VER < 0x07300000)
-      typedef int dimtype;                              /**<  MATLAB before 2017 uses int as the dimension array */
-#else
-      typedef size_t dimtype;                           /**<  MATLAB after 2017 uses size_t as the dimension array */
-#endif
+typedef mwSize dimtype;
 
 void mcx_set_field(const mxArray *root,const mxArray *item,int idx, Config *cfg);
 void mcx_validate_config(Config *cfg);
@@ -97,7 +97,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
   mxArray    *tmp;
   int        ifield, jstruct;
   int        ncfg, nfields;
-  dimtype    fielddim[5];
+  dimtype    fielddim[6];
   int        activedev=0;
   int        errorflag=0;
   int        threadid=0;
@@ -228,6 +228,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
             int fieldlen=cfg.dim.x*cfg.dim.y*cfg.dim.z*(int)((cfg.tend-cfg.tstart)/cfg.tstep+0.5)*cfg.srcnum;
 	    if(cfg.replay.seed!=NULL && cfg.replaydet==-1)
 	        fieldlen*=cfg.detnum;
+	    if(cfg.replay.seed!=NULL && cfg.outputtype==otRF)
+	        fieldlen*=2;
 	    cfg.exportfield = (float*)calloc(fieldlen,sizeof(float));
 	}
 	if(nlhs>=2){
@@ -271,6 +273,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
             mexErrMsgTxt("MCXLAB Terminated due to an exception!");
 
         fielddim[4]=1;
+	fielddim[5]=1;
 
         /** if 5th output presents, output the photon trajectory data */
         if(nlhs>=5){
@@ -321,7 +324,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
 	    fielddim[2]=cfg.dim.z; fielddim[3]=(int)((cfg.tend-cfg.tstart)/cfg.tstep+0.5);
 	    if(cfg.replay.seed!=NULL && cfg.replaydet==-1)
 	        fielddim[4]=cfg.detnum;
-	    fieldlen=fielddim[0]*fielddim[1]*fielddim[2]*fielddim[3]*fielddim[4];
+	    if(cfg.replay.seed!=NULL && cfg.outputtype==otRF)
+	        fielddim[5]=2;
+	    fieldlen=fielddim[0]*fielddim[1]*fielddim[2]*fielddim[3]*fielddim[4]*fielddim[5];
             if(cfg.issaveref){        /** If error is detected, gracefully terminate the mex and return back to MATLAB */
 
 	        float *dref=(float *)malloc(fieldlen*sizeof(float));
@@ -333,11 +338,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
 		    }else
 		        dref[i]=0.f;
 		}
-	        mxSetFieldByNumber(plhs[0],jstruct,2, mxCreateNumericArray(4+(fielddim[4]>1),fielddim,mxSINGLE_CLASS,mxREAL));
+	        mxSetFieldByNumber(plhs[0],jstruct,2, mxCreateNumericArray(((fielddim[5]>1) ? 6 : (4+(fielddim[4]>1))),fielddim,mxSINGLE_CLASS,mxREAL));
                 memcpy((float*)mxGetPr(mxGetFieldByNumber(plhs[0],jstruct,2)),dref,fieldlen*sizeof(float));
 		free(dref);
 	    }
-	    mxSetFieldByNumber(plhs[0],jstruct,0, mxCreateNumericArray(4+(fielddim[4]>1),fielddim,mxSINGLE_CLASS,mxREAL));
+	    mxSetFieldByNumber(plhs[0],jstruct,0, mxCreateNumericArray(((fielddim[5]>1) ? 6 : (4+(fielddim[4]>1))),fielddim,mxSINGLE_CLASS,mxREAL));
 	    memcpy((float*)mxGetPr(mxGetFieldByNumber(plhs[0],jstruct,0)),cfg.exportfield,
                          fieldlen*sizeof(float));
             free(cfg.exportfield);
@@ -453,6 +458,7 @@ void mcx_set_field(const mxArray *root,const mxArray *item,int idx, Config *cfg)
     GET_ONE_FIELD(cfg,maxjumpdebug)
     GET_ONE_FIELD(cfg,gscatter)
     GET_ONE_FIELD(cfg,srcnum)
+    GET_ONE_FIELD(cfg,omega)
     GET_VEC3_FIELD(cfg,srcpos)
     GET_VEC34_FIELD(cfg,srcdir)
     GET_VEC3_FIELD(cfg,steps)
@@ -480,6 +486,8 @@ void mcx_set_field(const mxArray *root,const mxArray *item,int idx, Config *cfg)
 	}else if(mxGetNumberOfDimensions(item)==4){ // if dimension is 4D, 1st dim is the property records: mua/mus/g/n
 	    if((mxIsUint8(item) || mxIsInt8(item)) && arraydim[0]==4) // if 4D byte array has a 1st dim of 4
 		 cfg->mediabyte=MEDIA_ASGN_BYTE;
+	    else if((mxIsUint8(item) || mxIsInt8(item)) && arraydim[0]==8)
+		 cfg->mediabyte=MEDIA_2LABEL_SPLIT;
 	    else if(mxIsSingle(item) && arraydim[0]==3)
 		 cfg->mediabyte=MEDIA_LABEL_HALF;
 	    else if((mxIsUint16(item) || mxIsInt16(item)) && arraydim[0]==3)
@@ -543,6 +551,9 @@ void mcx_set_field(const mxArray *root,const mxArray *item,int idx, Config *cfg)
 		    f2h.h[1] = (f2h.h[1] | tmp) << 10;
 		    f2h.h[1] |= (f2h.i[1] >> 13) & 0x3ff;
 
+	            if(f2h.i[0]==0) /*avoid being detected as a 0-label voxel, setting mus=EPS_fp16*/
+	                f2h.i[0]=0x00010000;
+
 	            cfg->vol[i]=f2h.i[0];
 		}
 	    }else if(cfg->mediabyte==MEDIA_LABEL_HALF){
@@ -586,6 +597,12 @@ void mcx_set_field(const mxArray *root,const mxArray *item,int idx, Config *cfg)
 		    f2bh.h[1]=val[i*3+2] & 0x7FFF;
 	            cfg->vol[i]=f2bh.i[0];
 		}
+	    }else if(cfg->mediabyte==MEDIA_2LABEL_SPLIT){
+		unsigned char *val=(unsigned char *)mxGetPr(item);
+		if(cfg->vol)
+		    free(cfg->vol);
+		cfg->vol=(unsigned int *)malloc(dimxyz<<3);
+		memcpy(cfg->vol, val, (dimxyz<<3));
 	    }
 	}
         printf("mcx.dim=[%d %d %d];\n",cfg->dim.x,cfg->dim.y,cfg->dim.z);
@@ -645,7 +662,7 @@ void mcx_set_field(const mxArray *root,const mxArray *item,int idx, Config *cfg)
 	printf("mcx.srctype='%s';\n",strtypestr);
     }else if(strcmp(name,"outputtype")==0){
         int len=mxGetNumberOfElements(item);
-        const char *outputtype[]={"flux","fluence","energy","jacobian","nscat","wl","wp","wm",""};
+        const char *outputtype[]={"flux","fluence","energy","jacobian","nscat","wl","wp","wm","rf",""};
         char outputstr[MAX_SESSION_LENGTH]={'\0'};
 
         if(!mxIsChar(item) || len==0)
@@ -676,7 +693,7 @@ void mcx_set_field(const mxArray *root,const mxArray *item,int idx, Config *cfg)
         cfg->debuglevel=mcx_parsedebugopt(debuglevel,debugflag);
         if(cfg->debuglevel==0)
              mexWarnMsgTxt("the specified debuglevel is not supported");
-	printf("mcx.debuglevel='%d';\n",cfg->debuglevel);
+	printf("mcx.debuglevel=%d;\n",cfg->debuglevel);
     }else if(strcmp(name,"savedetflag")==0){
         int len=mxGetNumberOfElements(item);
         const char saveflag[]={'D','S','P','M','X','V','W','\0'};
@@ -690,7 +707,7 @@ void mcx_set_field(const mxArray *root,const mxArray *item,int idx, Config *cfg)
         if (status != 0)
              mexWarnMsgTxt("not enough space. string is truncated.");
         cfg->savedetflag=mcx_parsedebugopt(savedetflag,saveflag);
-	printf("mcx.savedetflag='%d';\n",cfg->savedetflag);
+	printf("mcx.savedetflag=%d;\n",cfg->savedetflag);
     }else if(strcmp(name,"srcpattern")==0){
         arraydim=mxGetDimensions(item);
         dimtype dimz=1;
@@ -701,7 +718,23 @@ void mcx_set_field(const mxArray *root,const mxArray *item,int idx, Config *cfg)
         cfg->srcpattern=(float*)malloc(arraydim[0]*arraydim[1]*dimz*sizeof(float));
         for(i=0;i<arraydim[0]*arraydim[1]*dimz;i++)
              cfg->srcpattern[i]=val[i];
-        printf("mcx.srcpattern=[%d %d %d];\n",arraydim[0],arraydim[1],dimz);
+        printf("mcx.srcpattern=[%ld %ld %ld];\n",arraydim[0],arraydim[1],dimz);
+    }else if(strcmp(name,"invcdf")==0){
+        dimtype nphase=mxGetNumberOfElements(item);
+	double *val=mxGetPr(item);
+	if(cfg->invcdf) free(cfg->invcdf);
+	cfg->nphase=(unsigned int)nphase+2;
+	cfg->nphase+=(cfg->nphase & 0x1); // make cfg.nphase even number
+        cfg->invcdf=(float*)calloc(cfg->nphase,sizeof(float));
+        for(i=0;i<nphase;i++){
+             cfg->invcdf[i+1]=val[i];
+	     if(i>0 && (val[i]<val[i-1] || (val[i]>1.f || val[i]<-1.f)))
+	         mexErrMsgTxt("cfg.invcdf contains invalid data; it must be a monotonically increasing vector with all values between -1 and 1");
+	}
+	cfg->invcdf[0]=-1.f;
+	cfg->invcdf[nphase+1]=1.f;
+	cfg->invcdf[cfg->nphase-1]=1.f;
+        printf("mcx.invcdf=[%ld];\n",cfg->nphase);
     }else if(strcmp(name,"shapes")==0){
         int len=mxGetNumberOfElements(item);
         if(!mxIsChar(item) || len==0)
@@ -712,7 +745,7 @@ void mcx_set_field(const mxArray *root,const mxArray *item,int idx, Config *cfg)
         jsonshapes[len]='\0';
     }else if(strcmp(name,"bc")==0){
         int len=mxGetNumberOfElements(item);
-        if(!mxIsChar(item) || len==0 || len>7)
+        if(!mxIsChar(item) || len==0 || len>12)
              mexErrMsgTxt("the 'bc' field must be a non-empty string");
 
         mxGetString(item, cfg->bc, len+1);
@@ -724,7 +757,7 @@ void mcx_set_field(const mxArray *root,const mxArray *item,int idx, Config *cfg)
 	dimdetps[1]=arraydim[1];
         detps=(float *)malloc(arraydim[0]*arraydim[1]*sizeof(float));
         memcpy(detps,mxGetData(item),arraydim[0]*arraydim[1]*sizeof(float));
-        printf("mcx.detphotons=[%d %d];\n",arraydim[0],arraydim[1]);
+        printf("mcx.detphotons=[%ld %ld];\n",arraydim[0],arraydim[1]);
     }else if(strcmp(name,"seed")==0){
         arraydim=mxGetDimensions(item);
         if(MAX(arraydim[0],arraydim[1])==0)
@@ -777,7 +810,7 @@ void mcx_set_field(const mxArray *root,const mxArray *item,int idx, Config *cfg)
 	     mexErrMsgTxt("the workload list can not be longer than 256");
 	for(i=0;i<arraydim[0]*arraydim[1];i++)
 	     cfg->workload[i]=val[i];
-        printf("mcx.workload=<<%d>>;\n",arraydim[0]*arraydim[1]);
+        printf("mcx.workload=<<%ld>>;\n",arraydim[0]*arraydim[1]);
     }else{
         printf(S_RED "WARNING: redundant field '%s'\n" S_RESET,name);
     }
@@ -855,8 +888,9 @@ void mcx_replay_prep(Config *cfg){
  */
 
 void mcx_validate_config(Config *cfg){
-     int i,gates,idx1d;
+     int i,gates,idx1d, isbcdet=0;
      const char boundarycond[]={'_','r','a','m','c','\0'};
+     const char boundarydetflag[]={'0','1','\0'};
      unsigned int partialdata=(cfg->medianum-1)*(SAVE_NSCAT(cfg->savedetflag)+SAVE_PPATH(cfg->savedetflag)+SAVE_MOM(cfg->savedetflag));
      unsigned int hostdetreclen=partialdata+SAVE_DETID(cfg->savedetflag)+3*(SAVE_PEXIT(cfg->savedetflag)+SAVE_VEXIT(cfg->savedetflag))+SAVE_W0(cfg->savedetflag);
 
@@ -894,101 +928,18 @@ void mcx_validate_config(Config *cfg){
             cfg->crop1.x--;cfg->crop1.y--;cfg->crop1.z--;
         }
      }
-     if(cfg->medianum==0)
-        mexErrMsgTxt("you must define the 'prop' field in the input structure");
-     if(cfg->dim.x==0||cfg->dim.y==0||cfg->dim.z==0)
-        mexErrMsgTxt("the 'vol' field in the input structure can not be empty");
-     if((cfg->srctype==MCX_SRC_PATTERN || cfg->srctype==MCX_SRC_PATTERN3D) && cfg->srcpattern==NULL)
-        mexErrMsgTxt("the 'srcpattern' field can not be empty when your 'srctype' is 'pattern'");
-     if(cfg->steps.x!=1.f && cfg->unitinmm==1.f)
-        cfg->unitinmm=cfg->steps.x;
-
-     if(cfg->replaydet>(int)cfg->detnum)
-        mexErrMsgTxt("replay detector ID exceeds the maximum detector number");
-     if(cfg->replaydet==-1 && cfg->detnum==1)
-        cfg->replaydet=1;
-
-     for(i=0;i<6;i++)
-        if(cfg->bc[i]>='A' && mcx_lookupindex(cfg->bc+i,boundarycond))
-	   mexErrMsgTxt("unknown boundary condition specifier");
-
-     if(cfg->medianum){
-        for(i=0;i<cfg->medianum;i++)
-             if(cfg->prop[i].mus==0.f){
-	         cfg->prop[i].mus=EPS;
-		 cfg->prop[i].g=1.f;
-	     }
-     }
-     if(cfg->unitinmm!=1.f){
-        cfg->steps.x=cfg->unitinmm; cfg->steps.y=cfg->unitinmm; cfg->steps.z=cfg->unitinmm;
-        for(i=1;i<cfg->medianum;i++){
-		cfg->prop[i].mus*=cfg->unitinmm;
-		cfg->prop[i].mua*=cfg->unitinmm;
-        }
-     }
-     if(cfg->issavedet && cfg->detnum==0) 
-      	cfg->issavedet=0;
-     if(cfg->issavedet==0){
-         cfg->issaveexit=0;
-	 cfg->ismomentum=0;
-	 if(cfg->seed!=SEED_FROM_FILE)
-	    cfg->savedetflag=0;
-     }
-     if(cfg->respin==0)
-         mexErrMsgTxt("respin number can not be 0, check your -r/--repeat input or cfg.respin value");
 
      if(cfg->seed<0 && cfg->seed!=SEED_FROM_FILE) cfg->seed=time(NULL);
-     if((cfg->outputtype==otJacobian || cfg->outputtype==otWP || cfg->outputtype==otDCS) && cfg->seed!=SEED_FROM_FILE)
+     if((cfg->outputtype==otJacobian || cfg->outputtype==otWP || cfg->outputtype==otDCS || cfg->outputtype==otRF) && cfg->seed!=SEED_FROM_FILE)
          mexErrMsgTxt("Jacobian output is only valid in the reply mode. Please define cfg.seed");     
      for(i=0;i<cfg->detnum;i++){
         if(!cfg->issrcfrom0){
 		cfg->detpos[i].x--;cfg->detpos[i].y--;cfg->detpos[i].z--;  /*convert to C index*/
 	}
      }
-     if(1){
-        cfg->isrowmajor=0; /*matlab is always col-major*/
-	if(cfg->isrowmajor){
-		/*from here on, the array is always col-major*/
-		mcx_convertrow2col(&(cfg->vol), &(cfg->dim));
-		cfg->isrowmajor=0;
-	}
-	if(cfg->issavedet)
-		mcx_maskdet(cfg);
-        if(cfg->seed==SEED_FROM_FILE){
-            if(cfg->respin>1 || cfg->respin<0){
-	       cfg->respin=1;
-	       fprintf(stderr,S_RED "WARNING: respin is disabled in the replay mode\n" S_RESET);
-	    }
-        }
-     }
-     if((cfg->mediabyte==MEDIA_AS_F2H || cfg->mediabyte==MEDIA_MUA_FLOAT || cfg->mediabyte==MEDIA_AS_HALF) && cfg->medianum<2)
-         mexErrMsgTxt("the 'prop' field must contain at least 2 rows for the requested media format");
-     if((cfg->mediabyte==MEDIA_ASGN_BYTE || cfg->mediabyte==MEDIA_AS_SHORT) && cfg->medianum<3)
-         mexErrMsgTxt("the 'prop' field must contain at least 3 rows for the requested media format");
-     if(cfg->ismomentum)
-         cfg->savedetflag=SET_SAVE_MOM(cfg->savedetflag);
-     if(cfg->issaveexit){
-         cfg->savedetflag=SET_SAVE_PEXIT(cfg->savedetflag);
-	 cfg->savedetflag=SET_SAVE_VEXIT(cfg->savedetflag);
-     }
-     if(cfg->issavedet && cfg->savedetflag==0)
-         cfg->savedetflag=0x5;
 
-     if(cfg->mediabyte>=100){
-	 cfg->savedetflag=UNSET_SAVE_NSCAT(cfg->savedetflag);
-	 cfg->savedetflag=UNSET_SAVE_PPATH(cfg->savedetflag);
-	 cfg->savedetflag=UNSET_SAVE_MOM(cfg->savedetflag);
-     }
-     if(cfg->issaveref>1){
-        if(cfg->issavedet==0)
-	    mexErrMsgTxt("you must have at least two outputs if issaveref is greater than 1");
+     mcx_preprocess(cfg);
 
-        if(cfg->dim.x*cfg->dim.y*cfg->dim.z > cfg->maxdetphoton){
-	    mexWarnMsgTxt("you must set cfg.maxdetphoton larger than prod(size(cfg.vol)) when cfg.issaveref is greater than 1, autocorrecting ...");
-	    cfg->maxdetphoton=cfg->dim.x*cfg->dim.y*cfg->dim.z;
-	}
-	cfg->savedetflag=0x5;
-     }
      cfg->his.maxmedia=cfg->medianum-1; /*skip medium 0*/
      cfg->his.detnum=cfg->detnum;
      cfg->his.srcnum=cfg->srcnum;
@@ -1017,7 +968,7 @@ extern "C" int mcx_throw_exception(const int id, const char *msg, const char *fi
  */
 
 void mcxlab_usage(){
-     printf("Usage:\n    [flux,detphoton,vol,seeds]=mcxlab(cfg);\n\nPlease run 'help mcxlab' for more details.\n");
+     printf("MCXLAB v2021.2\nUsage:\n    [flux,detphoton,vol,seeds]=mcxlab(cfg);\n\nPlease run 'help mcxlab' for more details.\n");
 }
 
 /**

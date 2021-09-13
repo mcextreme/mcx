@@ -10,7 +10,7 @@
 
 #define MyAppName "MCX Studio"
 #define MyAppDir "MCXStudio"
-#define MyAppVersion "v2020"
+#define MyAppVersion "v2021.2"
 #define MyAppPublisher "COTILab"
 #define MyAppURL "http://mcx.space"
 #define MyAppExeName "mcxstudio.exe"
@@ -29,17 +29,21 @@ AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppDir}
-DisableProgramGroupPage=yes
+DisableProgramGroupPage=no
 LicenseFile=..\MCXSuite\mcx\NOTICE.txt
 InfoAfterFile=..\README.txt
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
 ;PrivilegesRequired=lowest
-OutputBaseFilename={#MyAppDir}-{#MyAppVersion}
+OutputBaseFilename="{#MyAppDir}-{#MyAppVersion}"
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
 ChangesEnvironment=true
 SetupIconFile=mcxstudio_2020.ico
+ArchitecturesInstallIn64BitMode=x64
+DefaultGroupName="{#MyAppName} {#MyAppVersion}"
+VersionInfoCompany={#MyAppPublisher}
+VersionInfoCopyRight="(C) {#MyAppPublisher}"
 
 ;;----------------------------------------------------------------------
 
@@ -132,6 +136,11 @@ var
 function GetMatlabToolboxLocalPath(Param: string): string;
 begin
   Result := MatlabToolboxLocalPath;
+  if Result = '..\toolbox' then
+  begin
+    Result := ExpandConstant('{app}') + '\MATLAB';
+  end;
+  Log(Format('MCX Toolbox Path found at %s', [Result]));
 end;
 
 function InitializeSetup(): Boolean;
@@ -139,14 +148,9 @@ var
   MatlabExePath: string;
 begin
   MatlabExePath := FileSearch('matlab.exe', GetEnv('PATH'));
-  if MatlabExePath = '' then
-  begin
-    MatlabExePath := ExpandConstant('{app}') + '\MATLAB';
-    Result := true;
-    Exit;
-  end;
   Log(Format('MATLAB Path found at %s', [MatlabExePath]));
   MatlabToolboxLocalPath := ExtractFilePath(MatlabExePath) + '..\toolbox';
+  Log(Format('MATLAB Toolbox Path found at %s', [MatlabToolboxLocalPath]));
 
   Result := True;
 end;
