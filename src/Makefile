@@ -28,7 +28,7 @@ OUTPUT_DIR=$(MCXDIR)/bin
 
 DOXY       := doxygen
 DOCDIR     := $(MCXDIR)/doc
-DOXYCFG=mcxdoxy.cfg
+DOXYCFG=mcx_doxygen.cfg
 ZMATLIB    :=libzmat.a
 USERLINKOPT?=$(ZMATLIB) -lz
 
@@ -66,10 +66,11 @@ CPPOPT=-g -Wall -std=c99 #-DNO_LZMA # -DUSE_OS_TIMER
 OBJSUFFIX=.o
 EXESUFFIX=
 
-FILES=mcx_core mcx_utils mcx_shapes tictoc mcextreme mcx_bench cjson/cJSON ubj/ubjw
+FILES=mcx_core mcx_utils mcx_shapes mcx_tictoc mcx mcx_bench mcx_mie cjson/cJSON ubj/ubjw
 
 ifeq ($(findstring CYGWIN,$(PLATFORM)), CYGWIN)
   CC=nvcc
+  CXX=nvcc
   CUOMPLINK=-Xcompiler
   ifeq ($(findstring x86_64,$(ARCH)), x86_64)
       LINKOPT=-L"$(CUDA_PATH)/lib/x64" $(CUDART)
@@ -107,7 +108,19 @@ else
   endif
 endif
 
-CUGENCODE?=-arch=sm_30
+ifeq ($(MAKECMDGOALS),mex)
+  FILES=mcx_core mcx_utils mcx_shapes mcx_tictoc mcx_bench mcx_mie cjson/cJSON
+  ZMATLIB=
+  USERLINKOPT=
+endif
+
+ifeq ($(MAKECMDGOALS),oct)
+  FILES=mcx_core mcx_utils mcx_shapes mcx_tictoc mcx_bench mcx_mie cjson/cJSON
+  ZMATLIB=
+  USERLINKOPT=
+endif
+
+CUGENCODE?=-arch=sm_35
 OUTPUTFLAG:=-o
 
 ##  Target section  ##
@@ -185,12 +198,12 @@ static:     CUOMPLINK=-Xcompiler
 static:     LINKOPT=$(CUDA_STATIC)
 
 fermimex:   AR=$(MEX)
-fermimex:   LINKOPT+= CXXFLAGS='$$CXXFLAGS -g -DSAVE_DETECTORS -DMCX_CONTAINER $(OMP) $(MEXCCOPT) $(USERCCOPT)' LDFLAGS='-L$$TMW_ROOT$$MATLABROOT/sys/os/$$ARCH $$LDFLAGS $(OMP) $(USERLINKOPT)'
+fermimex:   LINKOPT+= CXXFLAGS='$$CXXFLAGS -g -DSAVE_DETECTORS -DMCX_CONTAINER -DMATLAB_MEX_FILE $(OMP) $(MEXCCOPT) $(USERCCOPT)' LDFLAGS='-L$$TMW_ROOT$$MATLABROOT/sys/os/$$ARCH $$LDFLAGS $(OMP) $(USERLINKOPT)'
 oct fermimex fermioct:    OUTPUT_DIR=../mcxlab
 fermimex:   BINARY=mcx
 fermioct:   BINARY=mcx.mex
-fermimex fermioct:    CUCCOPT+=--compiler-options "$(DLLFLAG)" -DMCX_CONTAINER
-fermimex fermioct:    CPPOPT+=$(DLLFLAG) -DMCX_CONTAINER
+fermimex fermioct:    CUCCOPT+=--compiler-options "$(DLLFLAG)" -DMCX_CONTAINER -DMATLAB_MEX_FILE
+fermimex fermioct:    CPPOPT+=$(DLLFLAG) -DMCX_CONTAINER -DMATLAB_MEX_FILE
 fermimex:   LINKOPT+=mcxlab.cpp -outdir $(OUTPUT_DIR) $(INCLUDEDIRS)
 
 fermioct:   AR= CXXFLAGS='-DSAVE_DETECTORS -fopenmp $(MEXCCOPT) $(USERCCOPT)' LFLAGS='-fopenmp $(USERLINKOPT)' LDFLAGS='$(LFLAGS)' mkoctfile
@@ -245,6 +258,9 @@ $(OUTPUT_DIR)/$(BINARY): $(OBJS)
 %$(OBJSUFFIX): %.c
 	$(CC) $(INCLUDEDIRS) $(CPPOPT) -c -o $@  $<
 
+%$(OBJSUFFIX): %.cpp
+	$(CXX) $(INCLUDEDIRS) $(CPPOPT) -c -o $@  $<
+
 mcx_bench$(OBJSUFFIX): mcx_bench.c
 	$(GCC) $(INCLUDEDIRS) -c -o mcx_bench$(OBJSUFFIX)  $<
 
@@ -260,6 +276,31 @@ cudasdk:
 	@if [ -z `which ${CUDACC}` ]; then \
 	   echo "Please first install CUDA SDK and add the path to nvcc to your PATH environment variable."; exit 1;\
 	fi
+
+# derived the astyle settings from https://github.com/nlohmann/json
+pretty:
+	astyle \
+	    --style=attach \
+	    --indent=spaces=4 \
+	    --indent-modifiers \
+	    --indent-switches \
+	    --indent-preproc-block \
+	    --indent-preproc-define \
+	    --indent-col1-comments \
+	    --pad-oper \
+	    --pad-header \
+	    --align-pointer=type \
+	    --align-reference=type \
+	    --add-brackets \
+	    --convert-tabs \
+	    --close-templates \
+	    --lineend=linux \
+	    --preserve-date \
+	    --suffix=none \
+	    --formatted \
+	    --break-blocks \
+	    --exclude=mcx_bench.c \
+	   "*.c" "*.h" "*.cpp" "*.cu"
 
 .DEFAULT_GOAL := all
 

@@ -2,20 +2,20 @@
 **  \mainpage Monte Carlo eXtreme - GPU accelerated Monte Carlo Photon Migration
 **
 **  \author Qianqian Fang <q.fang at neu.edu>
-**  \copyright Qianqian Fang, 2009-2021
+**  \copyright Qianqian Fang, 2009-2022
 **
 **  \section sref Reference:
-**  \li \c (\b Fang2009) Qianqian Fang and David A. Boas, 
+**  \li \c (\b Fang2009) Qianqian Fang and David A. Boas,
 **          <a href="http://www.opticsinfobase.org/abstract.cfm?uri=oe-17-22-20178">
-**          "Monte Carlo Simulation of Photon Migration in 3D Turbid Media Accelerated 
+**          "Monte Carlo Simulation of Photon Migration in 3D Turbid Media Accelerated
 **          by Graphics Processing Units,"</a> Optics Express, 17(22) 20178-20190 (2009).
 **  \li \c (\b Yu2018) Leiming Yu, Fanny Nina-Paravecino, David Kaeli, and Qianqian Fang,
 **          "Scalable and massively parallel Monte Carlo photon transport
-**           simulations for heterogeneous computing platforms," J. Biomed. Optics, 
+**           simulations for heterogeneous computing platforms," J. Biomed. Optics,
 **           23(1), 010504, 2018. https://doi.org/10.1117/1.JBO.23.1.010504
-**  \li \c (\b Yan2020) Shijie Yan and Qianqian Fang* (2020), "Hybrid mesh and voxel 
-**          based Monte Carlo algorithm for accurate and efficient photon transport 
-**          modeling in complex bio-tissues," Biomed. Opt. Express, 11(11) 
+**  \li \c (\b Yan2020) Shijie Yan and Qianqian Fang* (2020), "Hybrid mesh and voxel
+**          based Monte Carlo algorithm for accurate and efficient photon transport
+**          modeling in complex bio-tissues," Biomed. Opt. Express, 11(11)
 **          pp. 6262-6270. https://doi.org/10.1364/BOE.409468
 **
 **  \section slicense License
@@ -48,6 +48,7 @@
 #define BOUNDARY_DET_MASK  0xFFFF0000              /**< flag indicating a boundary face is used as a detector*/
 #define MAX_PROP_AND_DETECTORS   4000              /**< maximum number of property + number of detectors */
 #define SEED_FROM_FILE      -999                   /**< special flag indicating to read seeds from an mch file for replay */
+#define NANGLES            1000                    /**< number of discretization points in scattering angles */
 
 #define SIGN_BIT           0x80000000U
 #define DET_MASK           0x80000000              /**< mask of the sign bit to get the detector */
@@ -86,6 +87,7 @@
 #define MCX_SRC_SLIT       13 /**<  a collimated line source */
 #define MCX_SRC_PENCILARRAY 14 /**<  a rectangular array of pencil beams */
 #define MCX_SRC_PATTERN3D  15  /**<  a 3D pattern source, starting from srcpos, srcparam1.{x,y,z} define the x/y/z dimensions */
+#define MCX_SRC_HYPERBOLOID_GAUSSIAN 16 /**<  Gaussian-beam with spot focus, scrparam1.{x,y,z} define beam waist, distance from source to focus, rayleigh range */
 
 #define SAVE_DETID(a)         ((a)    & 0x1)   /**<  mask to save detector ID*/
 #define SAVE_NSCAT(a)         ((a)>>1 & 0x1)   /**<  output partial scattering counts */
@@ -94,6 +96,7 @@
 #define SAVE_PEXIT(a)         ((a)>>4 & 0x1)   /**<  save exit positions */
 #define SAVE_VEXIT(a)         ((a)>>5 & 0x1)   /**<  save exit vector/directions */
 #define SAVE_W0(a)            ((a)>>6 & 0x1)   /**<  save initial weight */
+#define SAVE_IQUV(a)          ((a)>>7 & 0x1)   /**<  save stokes parameters */
 
 #define SET_SAVE_DETID(a)     ((a) | 0x1   )   /**<  mask to save detector ID*/
 #define SET_SAVE_NSCAT(a)     ((a) | 0x1<<1)   /**<  output partial scattering counts */
@@ -102,6 +105,7 @@
 #define SET_SAVE_PEXIT(a)     ((a) | 0x1<<4)   /**<  save exit positions */
 #define SET_SAVE_VEXIT(a)     ((a) | 0x1<<5)   /**<  save exit vector/directions */
 #define SET_SAVE_W0(a)        ((a) | 0x1<<6)   /**<  save initial weight */
+#define SET_SAVE_IQUV(a)      ((a) | 0x1<<7)   /**<  save stokes parameters */
 
 #define UNSET_SAVE_DETID(a)     ((a) & ~(0x1)   )   /**<  mask to save detector ID*/
 #define UNSET_SAVE_NSCAT(a)     ((a) & ~(0x1<<1))   /**<  output partial scattering counts */
@@ -110,27 +114,28 @@
 #define UNSET_SAVE_PEXIT(a)     ((a) & ~(0x1<<4))   /**<  save exit positions */
 #define UNSET_SAVE_VEXIT(a)     ((a) & ~(0x1<<5))   /**<  save exit vector/directions */
 #define UNSET_SAVE_W0(a)        ((a) & ~(0x1<<6))   /**<  save initial weight */
+#define UNSET_SAVE_IQUV(a)      ((a) & ~(0x1<<7))   /**<  unsave stokes parameters */
 
 #if !defined(MCX_CONTAINER) && !defined(_MSC_VER)
-  #define S_RED     "\x1b[31m"
-  #define S_GREEN   "\x1b[32m"
-  #define S_YELLOW  "\x1b[33m"
-  #define S_BLUE    "\x1b[34m"
-  #define S_MAGENTA "\x1b[35m"
-  #define S_CYAN    "\x1b[36m"
-  #define S_BOLD    "\x1b[1m"
-  #define S_ITALIC  "\x1b[3m"
-  #define S_RESET   "\x1b[0m"
+    #define S_RED     "\x1b[31m"
+    #define S_GREEN   "\x1b[32m"
+    #define S_YELLOW  "\x1b[33m"
+    #define S_BLUE    "\x1b[34m"
+    #define S_MAGENTA "\x1b[35m"
+    #define S_CYAN    "\x1b[36m"
+    #define S_BOLD    "\x1b[1m"
+    #define S_ITALIC  "\x1b[3m"
+    #define S_RESET   "\x1b[0m"
 #else
-  #define S_RED
-  #define S_GREEN
-  #define S_YELLOW
-  #define S_BLUE
-  #define S_MAGENTA
-  #define S_CYAN
-  #define S_BOLD
-  #define S_ITALIC
-  #define S_RESET
+    #define S_RED
+    #define S_GREEN
+    #define S_YELLOW
+    #define S_BLUE
+    #define S_MAGENTA
+    #define S_CYAN
+    #define S_BOLD
+    #define S_ITALIC
+    #define S_RESET
 #endif
 
 #endif
