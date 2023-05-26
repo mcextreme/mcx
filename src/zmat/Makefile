@@ -23,7 +23,7 @@ DOXY       := doxygen
 DOCDIR     := $(ZMATDIR)/doc
 DOXYCFG=zmat.cfg
 
-INCLUDEDIRS=-Ieasylzma -Ieasylzma/pavlov -Ilz4
+INCLUDEDIRS+=${INCLUDES} -Ieasylzma -Ieasylzma/pavlov -Ilz4
 
 CUOMPLINK=
 
@@ -45,7 +45,7 @@ easylzma/pavlov/LzmaEnc easylzma/pavlov/LzmaDec easylzma/pavlov/LzmaLib \
 easylzma/pavlov/LzFind easylzma/pavlov/Bra easylzma/pavlov/BraIA64 \
 easylzma/pavlov/Alloc easylzma/pavlov/7zCrc
 
-ifeq ($(findstring CYGWIN,$(PLATFORM)), CYGWIN)
+ifeq ($(findstring _NT-,$(PLATFORM)), _NT-)
   CC=nvcc
   #CUOMPLINK=-Xcompiler
   ifeq ($(findstring x86_64,$(ARCH)), x86_64)

@@ -9,6 +9,9 @@ import sys
 from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext
 
+with open("README.md", "r") as fh:
+    readme = fh.read()
+
 # Convert distutils Windows platform specifiers to CMake -A arguments
 PLAT_TO_CMAKE = {
     "win32": "Win32",
@@ -18,13 +21,11 @@ PLAT_TO_CMAKE = {
 }
 
 
-# A CMakeExtension needs a sourcedir instead of a file list.
-# The name must be the _single_ output extension from the CMake build.
-# If you need multiple extensions, see scikit-build.
 class CMakeExtension(Extension):
-    def __init__(self, name, sourcedir=""):
+    def __init__(self, name, target, source_dir=""):
         Extension.__init__(self, name, sources=[])
-        self.sourcedir = os.path.abspath(sourcedir)
+        self.source_dir = os.path.abspath(source_dir)
+        self.target = target
 
 
 class CMakeBuild(build_ext):
@@ -42,10 +43,8 @@ class CMakeBuild(build_ext):
         # Can be set with Conda-Build, for example.
         cmake_generator = os.environ.get("CMAKE_GENERATOR", "")
 
-        # Set Python_EXECUTABLE instead if you use PYBIND11_FINDPYTHON
-        # EXAMPLE_VERSION_INFO shows you how to pass a value into the C++ code
-        # from Python.
         cmake_args = [
+            f"-DPython3_ROOT_DIR={sys.exec_prefix}",
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}",
             f"-DPYTHON_EXECUTABLE={sys.executable}",
             f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
@@ -56,9 +55,6 @@ class CMakeBuild(build_ext):
         # (needed e.g. to build for ARM OSx on conda-forge)
         if "CMAKE_ARGS" in os.environ:
             cmake_args += [item for item in os.environ["CMAKE_ARGS"].split(" ") if item]
-
-        # In this example, we pass in the version to C++. You might not need to.
-        cmake_args += [f"-DEXAMPLE_VERSION_INFO={self.distribution.get_version()}"]
 
         if self.compiler.compiler_type != "msvc":
             # Using Ninja-build since it a) is available as a wheel and b)
@@ -114,21 +110,43 @@ class CMakeBuild(build_ext):
         if not os.path.exists(build_temp):
             os.makedirs(build_temp)
 
-        subprocess.check_call(["cmake", ext.sourcedir] + cmake_args, cwd=build_temp)
-        subprocess.check_call(["cmake", "--build", ".", "--target", "pymcx"] + build_args, cwd=build_temp)
+        subprocess.check_call(["cmake", ext.source_dir] + cmake_args, cwd=build_temp)
+        subprocess.check_call(["cmake", "--build", ".", "--target", ext.target] + build_args, cwd=build_temp)
 
 
 # The information here can also be placed in setup.cfg - better separation of
 # logic and declaration, and simpler if you include description/version in a file.
 setup(
-    name="pymcx",
-    version="0.0.1",
+    name="pmcx",
+    packages=['pmcx'],
+    version="0.0.13",
+    requires=['numpy'],
+    license='GPLv3+',
     author="Matin Raayai Ardakani, Qianqian Fang",
-    author_email="q.fang@neu.edu",
-    description="Python bindings for Monte Carlo eXtreme",
-    long_description="",
-    ext_modules=[CMakeExtension("pymcx")],
+    author_email="raayaiardakani.m@northeastern.edu, q.fang@neu.edu",
+    description="Python bindings for Monte Carlo eXtreme photon transport simulator",
+    long_description=readme,
+    long_description_content_type="text/markdown",
+    maintainer= 'Qianqian Fang',
+    url='https://github.com/fangq/mcx',
+    download_url='http://mcx.space',
+    keywords=['Monte Carlo simulation', 'Biophotonics', 'Ray-tracing', 'Rendering', 'GPU', 'Modeling',
+                'Biomedical Optics', 'Tissue Optics', 'Simulator', 'Optics'],
+    ext_modules=[CMakeExtension("_pmcx", target="_pmcx", source_dir="../src/")],
     cmdclass={"build_ext": CMakeBuild},
     zip_safe=False,
     python_requires=">=3.6",
+    classifiers=[
+      'Development Status :: 4 - Beta',
+      'Intended Audience :: Science/Research',
+      'Environment :: GPU :: NVIDIA CUDA',
+      'Topic :: Scientific/Engineering :: Physics',
+      'License :: OSI Approved :: Apache Software License',
+      'Programming Language :: Python :: 3.6',
+      'Programming Language :: Python :: 3.7',
+      'Programming Language :: Python :: 3.8',
+      'Programming Language :: Python :: 3.9',
+      'Programming Language :: Python :: 3.10',
+      'Programming Language :: Python :: 3.11'
+    ]
 )

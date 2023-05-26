@@ -177,7 +177,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
     /**
      * The function can return 1-5 outputs (i.e. the LHS)
      */
-    if (nlhs >= 1) {
+    if (nlhs >= 1 || (cfg.debuglevel & MCX_DEBUG_MOVE_ONLY)) {
         plhs[0] = mxCreateStructMatrix(ncfg, 1, 4, datastruct);
     }
 
@@ -227,7 +227,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
                 cfg.issave2pt = 0;    /** issave2pt defualt is 1, but allow users to manually disable, auto disable only if there is no output */
             }
 
-            cfg.issavedet = (nlhs >= 2); /** save detected photon data to the 2nd output if present */
+            cfg.issavedet = (nlhs >= 2 && cfg.issavedet == 0) ? 1 : ((nlhs < 2) ? 0 : cfg.issavedet); /** save detected photon data to the 2nd output if present */
             cfg.issaveseed = (nlhs >= 4); /** save detected photon seeds to the 4th output if present */
 
             /** Validate all input fields, and warn incompatible inputs */
@@ -269,7 +269,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
                 cfg.seeddata = malloc(cfg.maxdetphoton * sizeof(float) * RAND_WORD_LEN);
             }
 
-            if (nlhs >= 5) {
+            if (nlhs >= 5 || (cfg.debuglevel & MCX_DEBUG_MOVE_ONLY)) {
                 cfg.exportdebugdata = (float*)malloc(cfg.maxjumpdebug * sizeof(float) * MCX_DEBUG_REC_LEN);
                 cfg.debuglevel |= MCX_DEBUG_MOVE;
             }
@@ -311,15 +311,16 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
             fielddim[5] = 1;
 
             /** if 5th output presents, output the photon trajectory data */
-            if (nlhs >= 5) {
+            if (nlhs >= 5 || (cfg.debuglevel & MCX_DEBUG_MOVE_ONLY)) {
+                int outputidx=(cfg.debuglevel & MCX_DEBUG_MOVE_ONLY) ? 0 : 4;
                 fielddim[0] = MCX_DEBUG_REC_LEN;
                 fielddim[1] = cfg.debugdatalen; // his.savedphoton is for one repetition, should correct
                 fielddim[2] = 0;
                 fielddim[3] = 0;
-                mxSetFieldByNumber(plhs[4], jstruct, 0, mxCreateNumericArray(2, fielddim, mxSINGLE_CLASS, mxREAL));
+                mxSetFieldByNumber(plhs[outputidx], jstruct, 0, mxCreateNumericArray(2, fielddim, mxSINGLE_CLASS, mxREAL));
 
-                if (cfg.debuglevel & MCX_DEBUG_MOVE) {
-                    memcpy((float*)mxGetPr(mxGetFieldByNumber(plhs[4], jstruct, 0)), cfg.exportdebugdata, fielddim[0]*fielddim[1]*sizeof(float));
+                if (cfg.debuglevel & (MCX_DEBUG_MOVE | MCX_DEBUG_MOVE_ONLY)) {
+                    memcpy((float*)mxGetPr(mxGetFieldByNumber(plhs[outputidx], jstruct, 0)), cfg.exportdebugdata, fielddim[0]*fielddim[1]*sizeof(float));
                 }
 
                 if (cfg.exportdebugdata) {
@@ -535,6 +536,7 @@ void mcx_set_field(const mxArray* root, const mxArray* item, int idx, Config* cf
     GET_ONE_FIELD(cfg, unitinmm)
     GET_ONE_FIELD(cfg, printnum)
     GET_ONE_FIELD(cfg, voidtime)
+    GET_ONE_FIELD(cfg, issavedet)
     GET_ONE_FIELD(cfg, issaveseed)
     GET_ONE_FIELD(cfg, issaveref)
     GET_ONE_FIELD(cfg, issaveexit)
@@ -899,7 +901,7 @@ void mcx_set_field(const mxArray* root, const mxArray* item, int idx, Config* cf
         printf("mcx.srctype='%s';\n", strtypestr);
     } else if (strcmp(name, "outputtype") == 0) {
         int len = mxGetNumberOfElements(item);
-        const char* outputtype[] = {"flux", "fluence", "energy", "jacobian", "nscat", "wl", "wp", "wm", "rf", ""};
+        const char* outputtype[] = {"flux", "fluence", "energy", "jacobian", "nscat", "wl", "wp", "wm", "rf", "length", ""};
         char outputstr[MAX_SESSION_LENGTH] = {'\0'};
 
         if (!mxIsChar(item) || len == 0) {
@@ -929,7 +931,7 @@ void mcx_set_field(const mxArray* root, const mxArray* item, int idx, Config* cf
         printf("mcx.outputtype='%s';\n", outputstr);
     } else if (strcmp(name, "debuglevel") == 0) {
         int len = mxGetNumberOfElements(item);
-        const char debugflag[] = {'R', 'M', 'P', '\0'};
+        const char debugflag[] = {'R', 'M', 'P', 'T', '\0'};
         char debuglevel[MAX_SESSION_LENGTH] = {'\0'};
 
         if (!mxIsChar(item) || len == 0) {
@@ -1184,8 +1186,9 @@ void mcx_replay_prep(Config* cfg) {
             cfg->replay.detid[cfg->nphoton] = (hasdetid) ? (int)(detps[i * dimdetps[0]]) : 1;
 
             for (j = hasdetid; j < cfg->medianum - 1 + hasdetid; j++) {
-                plen = detps[i * dimdetps[0] + offset + j] * cfg->unitinmm;
+                plen = detps[i * dimdetps[0] + offset + j];
                 cfg->replay.weight[cfg->nphoton] *= expf(-cfg->prop[j - hasdetid + 1].mua * plen);
+                plen *= cfg->unitinmm;
                 cfg->replay.tof[cfg->nphoton] += plen * R_C0 * cfg->prop[j - hasdetid + 1].n;
             }
 

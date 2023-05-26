@@ -8,7 +8,7 @@ BACKEND ?= cuda
 
 ROOTDIR ?= ..
 MCXDIR  ?= $(ROOTDIR)
-MCXSRC :=$(MCXDIR)/src
+MCXSRC  :=$(MCXDIR)/src
 
 ifeq ($(BACKEND),ocelot)
   CC?=g++
@@ -30,7 +30,8 @@ DOXY       := doxygen
 DOCDIR     := $(MCXDIR)/doc
 DOXYCFG=mcx_doxygen.cfg
 ZMATLIB    :=libzmat.a
-USERLINKOPT?=$(ZMATLIB) -lz
+ZLIBFLAG   :=-lz
+USERLINKOPT?=$(ZMATLIB) $(ZLIBFLAG)
 
 CUDART=-lcudart
 CUOMPLINK=
@@ -39,11 +40,11 @@ ARCH = $(shell uname -m)
 PLATFORM = $(shell uname -s)
 CUDA_HOME ?= /usr/local/cuda
 
-INCLUDEDIRS=-Izmat -Izmat/easylzma -I$(CUDA_HOME)/include -Iubj
+INCLUDEDIRS+=${INCLUDES} -Izmat -Izmat/easylzma -I$(CUDA_HOME)/include -Iubj
 
 ifeq ($(BACKEND),ocelot)
   LINKOPT=-L/usr/local/lib `OcelotConfig -l` -ltinfo
-  CUCCOPT=-D__STRICT_ANSI__ -g #--maxrregcount 32
+  CUCCOPT+=-D__STRICT_ANSI__ -g #--maxrregcount 32
 else ifeq ($(BACKEND),cudastatic)
   ifeq ($(findstring Darwin,$(PLATFORM)), Darwin)
       CUDART=-lcudadevrt -lcudart_static -ldl -static-libgcc -static-libstdc++
@@ -51,44 +52,51 @@ else ifeq ($(BACKEND),cudastatic)
       CUDART=-lcudadevrt -lcudart_static -ldl -lrt -static-libgcc -static-libstdc++
   endif
   LINKOPT=-L$(CUDA_HOME)/lib -lm $(CUDART)
-  CUCCOPT=-g -lineinfo -Xcompiler -Wall#-arch compute_20 #--maxrregcount 32
+  CUCCOPT+=-g -lineinfo -Xcompiler -Wall#-arch compute_20 #--maxrregcount 32
 else
   LINKOPT=-L$(CUDA_HOME)/lib -lm $(CUDART)
-  CUCCOPT=-g -lineinfo -Xcompiler -Wall#-arch compute_20 #--maxrregcount 32
+  CUCCOPT+=-g -lineinfo -Xcompiler -Wall#-arch compute_20 #--maxrregcount 32
 endif
 
 DLLFLAG=-fPIC
 OMP=-fopenmp
+NVCCOMP=$(OMP)
 CUDA_STATIC=--cudart static -Xcompiler "-static-libgcc -static-libstdc++"
 
-CPPOPT=-g -Wall -std=c99 #-DNO_LZMA # -DUSE_OS_TIMER
+CFLAGS+=-std=c99
+CPPFLAGS+=-g -Wall #-DNO_LZMA # -DUSE_OS_TIMER
 
 OBJSUFFIX=.o
 EXESUFFIX=
 
 FILES=mcx_core mcx_utils mcx_shapes mcx_tictoc mcx mcx_bench mcx_mie cjson/cJSON ubj/ubjw
 
-ifeq ($(findstring CYGWIN,$(PLATFORM)), CYGWIN)
-  CC=nvcc
-  CXX=nvcc
+ifeq ($(findstring _NT-,$(PLATFORM)), _NT-)
+  CC=nvcc -v
+  CXX=nvcc -v
   CUOMPLINK=-Xcompiler
+  CUDART=-lcudart_static
   ifeq ($(findstring x86_64,$(ARCH)), x86_64)
       LINKOPT=-L"$(CUDA_PATH)/lib/x64" $(CUDART)
   else
       LINKOPT=-L"$(CUDA_PATH)/lib/Win32" $(CUDART)
   endif
-  INCLUDEDIRS +=-I"$(CUDA_PATH)/lib/include"
+  INCLUDEDIRS +=-I"$(CUDA_PATH)/include"
   CPPOPT =-c -D_CRT_SECURE_NO_DEPRECATE -DWIN32 #-DNO_LZMA
   OBJSUFFIX=.obj
   EXESUFFIX=.exe
   DLLFLAG=
-  OMP=/openmp
-  MEX=cmd /c mex
-  CUCCOPT+=-Xcompiler "$(OMP) /W0"
-  CUDA_STATIC=--cudart static -Xcompiler $(OMP) -Xcompiler /MT
-  CPPOPT+=-Xcompiler $(OMP)
+  OMP=-openmp
+  MEX=cmd /c mex COMPFLAGS='-MT'
+  NVCCOMP=$(CUOMPLINK) '$(OMP)'
+  CUCCOPT+=$(NVCCOMP)
+  CFLAGS=
+  CPPFLAGS=-g
+  CUDA_STATIC=--cuda static $(NVCCOMP) -Xcompiler -MT
+  CPPOPT+=$(NVCCOMP)
+  ZLIBFLAG=-lzlib
   ZMATLIB    :=zmat/zmatlib.obj zmat/lz4/lz4.obj zmat/lz4/lz4hc.obj zmat/easylzma/*.obj zmat/easylzma/pavlov/*.obj
-  USERLINKOPT:=$(ZMATLIB) -lzlib
+  USERLINKOPT:=${LIBRARIES} $(ZMATLIB) $(ZLIBFLAG)
 else ifeq ($(findstring Darwin,$(PLATFORM)), Darwin)
   CUDA_STATIC=--cudart static
   CPPOPT+=$(OMP)
@@ -108,16 +116,18 @@ else
   endif
 endif
 
-ifeq ($(MAKECMDGOALS),mex)
+ifneq (,$(filter mex,$(MAKECMDGOALS)))
   FILES=mcx_core mcx_utils mcx_shapes mcx_tictoc mcx_bench mcx_mie cjson/cJSON
   ZMATLIB=
   USERLINKOPT=
+  ZLIBFLAG=
 endif
 
-ifeq ($(MAKECMDGOALS),oct)
+ifneq (,$(filter oct,$(MAKECMDGOALS)))
   FILES=mcx_core mcx_utils mcx_shapes mcx_tictoc mcx_bench mcx_mie cjson/cJSON
   ZMATLIB=
   USERLINKOPT=
+  ZLIBFLAG=
 endif
 
 CUGENCODE?=-arch=sm_35
@@ -206,7 +216,7 @@ fermimex fermioct:    CUCCOPT+=--compiler-options "$(DLLFLAG)" -DMCX_CONTAINER -
 fermimex fermioct:    CPPOPT+=$(DLLFLAG) -DMCX_CONTAINER -DMATLAB_MEX_FILE
 fermimex:   LINKOPT+=mcxlab.cpp -outdir $(OUTPUT_DIR) $(INCLUDEDIRS)
 
-fermioct:   AR= CXXFLAGS='-DSAVE_DETECTORS -fopenmp $(MEXCCOPT) $(USERCCOPT)' LFLAGS='-fopenmp $(USERLINKOPT)' LDFLAGS='$(LFLAGS)' mkoctfile
+fermioct:   AR= CXXFLAGS='-DSAVE_DETECTORS $(NVCCOMP) $(MEXCCOPT) $(USERCCOPT)' LFLAGS='$(NVCCOMP) $(USERLINKOPT)' CC='$(CC)' CXX='$(CXX)' LDFLAGS='$(LFLAGS)' XTRA_CFLAGS='$(NVCCOMP)' XTRA_CXXFLAGS='$(NVCCOMP)'  mkoctfile -v
 fermioct:   BINARY=mcx.mex
 fermioct:   LINKOPT+=--mex mcxlab.cpp $(INCLUDEDIRS)
 
@@ -256,13 +266,13 @@ $(OUTPUT_DIR)/$(BINARY): $(OBJS)
 	$(AR) $(OBJS) $(OUTPUTFLAG) $(OUTPUT_DIR)/$(BINARY) $(LINKOPT) $(USERLINKOPT)
 
 %$(OBJSUFFIX): %.c
-	$(CC) $(INCLUDEDIRS) $(CPPOPT) -c -o $@  $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(INCLUDEDIRS) $(CPPOPT) -c -o $@  $<
 
 %$(OBJSUFFIX): %.cpp
-	$(CXX) $(INCLUDEDIRS) $(CPPOPT) -c -o $@  $<
+	$(CXX) $(CPPFLAGS) $(INCLUDEDIRS) $(CPPOPT) -c -o $@  $<
 
 mcx_bench$(OBJSUFFIX): mcx_bench.c
-	$(GCC) $(INCLUDEDIRS) -c -o mcx_bench$(OBJSUFFIX)  $<
+	$(GCC) $(CFLAGS) $(CPPFLAGS) $(INCLUDEDIRS) -c -o mcx_bench$(OBJSUFFIX)  $<
 
 %$(OBJSUFFIX): %.cu
 	$(CUDACC) -c $(CUCCOPT) -o $@  $<

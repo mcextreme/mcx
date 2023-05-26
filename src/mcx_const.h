@@ -43,6 +43,7 @@
 #define JUST_BELOW_ONE     0.9998f                 /**< test for boundary */
 #define SAME_VOXEL         -9999.f                 /**< scatter within a voxel */
 #define NO_LAUNCH          9999                    /**< when fail to launch, for debug */
+#define FILL_MAXDETPHOTON  3                       /**< when the detector photon buffer is filled, terminate simulation*/
 #define OUTSIDE_VOLUME_MIN 0xFFFFFFFF              /**< flag indicating the index is outside of the volume from x=xmax,y=ymax,z=zmax*/
 #define OUTSIDE_VOLUME_MAX 0x7FFFFFFF              /**< flag indicating the index is outside of the volume from x=0/y=0/z=0*/
 #define BOUNDARY_DET_MASK  0xFFFF0000              /**< flag indicating a boundary face is used as a detector*/
@@ -59,6 +60,7 @@
 #define MCX_DEBUG_RNG          1   /**< debug flags: 1 - run RNG testing kernel and return RNG numbers */
 #define MCX_DEBUG_MOVE         2   /**< debug flags: 2 - save and output photon trajectory data */
 #define MCX_DEBUG_PROGRESS     4   /**< debug flags: 4 - print progress bar */
+#define MCX_DEBUG_MOVE_ONLY    8   /**< debug flags: 8 - only save photon trajectory data, disable volume and detphoton output */
 
 #define MEDIA_2LABEL_SPLIT    97   /**<  media Format: 64bit:{[byte: lower label][byte: upper label][byte*3: reference point][byte*3: normal vector]} */
 #define MEDIA_2LABEL_MIX      98   /**<  media format: {[int: label1][int: label2][float32: label1 %]} -> 32bit:{[half: label1 %],[byte: label2],[byte: label1]} */
@@ -74,7 +76,7 @@
 #define MCX_SRC_PENCIL     0  /**<  default-Pencil beam src, no param */
 #define MCX_SRC_ISOTROPIC  1  /**<  isotropic source, no param */
 #define MCX_SRC_CONE       2  /**<  uniform cone, srcparam1.x=max zenith angle in rad */
-#define MCX_SRC_GAUSSIAN   3  /**<  Gaussian beam, srcparam1.x=sigma */
+#define MCX_SRC_GAUSSIAN   3  /**<  Gaussian beam, srcparam1.x=beam_waist=2*sigma */
 #define MCX_SRC_PLANAR     4  /**<  quadrilateral src, vectors spanned by srcparam{1}.{x,y,z} */
 #define MCX_SRC_PATTERN    5  /**<  same as above, load srcpattern as intensity */
 #define MCX_SRC_FOURIER    6  /**<  same as above, srcparam1.w and 2.w defines the spatial freq in x/y */
