@@ -2,9 +2,9 @@
 **  \mainpage Monte Carlo eXtreme - GPU accelerated Monte Carlo Photon Migration
 **
 **  \author Qianqian Fang <q.fang at neu.edu>
-**  \copyright Qianqian Fang, 2009-2022
+**  \copyright Qianqian Fang, 2009-2025
 **
-**  \section sref Reference:
+**  \section sref Reference
 **  \li \c (\b Fang2009) Qianqian Fang and David A. Boas,
 **          <a href="http://www.opticsinfobase.org/abstract.cfm?uri=oe-17-22-20178">
 **          "Monte Carlo Simulation of Photon Migration in 3D Turbid Media Accelerated
@@ -17,6 +17,10 @@
 **          based Monte Carlo algorithm for accurate and efficient photon transport
 **          modeling in complex bio-tissues," Biomed. Opt. Express, 11(11)
 **          pp. 6262-6270. https://doi.org/10.1364/BOE.409468
+**
+**  \section sformat Formatting
+**          Please always run "make pretty" inside the \c src folder before each commit.
+**          The above command requires \c astyle to perform automatic formatting.
 **
 **  \section slicense License
 **          GPL v3, see LICENSE.txt for details
@@ -48,6 +52,7 @@
 #define MAX_PATH_LENGTH     1024                         /**< max characters in a full file name string */
 #define MAX_SESSION_LENGTH  256                          /**< max session name length */
 #define MAX_DEVICE          256                          /**< max number of GPUs to be used */
+#define MAX_LANG_ID         32                           /**< max number of characters in the language code */
 
 #define MCX_CUDA_ERROR_LAUNCH_FAILED    719              /**< CUDA kernel launch error code */
 
@@ -62,7 +67,7 @@
 typedef unsigned int   uint;                             /**< use uint for unsigned int */
 typedef unsigned short ushort;                           /**< use ushort for unsigned short */
 
-enum TOutputType {otFlux, otFluence, otEnergy, otJacobian, otWP, otDCS, otRF, otL};   /**< types of output */
+enum TOutputType {otFlux, otFluence, otEnergy, otJacobian, otWP, otDCS, otRF, otL, otRFmus, otWLTOF, otWPTOF};   /**< types of output */
 enum TMCXParent  {mpStandalone, mpMATLAB, mpPython};                   /**< whether MCX is run in binary or mex mode */
 enum TOutputFormat {ofMC2, ofNifti, ofAnalyze, ofUBJSON, ofTX3, ofJNifti, ofBJNifti};           /**< output data format */
 enum TBoundary {bcUnknown, bcReflect, bcAbsorb, bcMirror, bcCyclic};            /**< boundary conditions */
@@ -94,6 +99,14 @@ typedef struct MCXPolarizeMedium {
     float nmed;                    /**< background medium refrative index */
 } POLMedium;
 
+typedef struct  MCXExtraSource {
+    float4 srcpos;                    /**< initial position vector + initial weight */
+    float4 srcdir;                    /**< initial directon vector + focal length */
+    float4 srcparam1;                 /**< source parameters set 1 */
+    float4 srcparam2;                 /**< source parameters set 2 */
+} ExtraSrc;
+
+
 /**
  * Header data structure in .mch/.mct files to store detected photon data
  * This header has a total of 256 bytes
@@ -113,8 +126,9 @@ typedef struct MCXHistoryHeader {
     float normalizer;              /**< what is the normalization factor */
     int respin;                    /**< if positive, repeat count so total photon=totalphoton*respin; if negative, total number is processed in respin subset */
     unsigned int  srcnum;          /**< number of sources for simultaneous pattern sources */
-    unsigned int  savedetflag;     /**< number of sources for simultaneous pattern sources */
-    int reserved[2];               /**< reserved fields for future extension */
+    unsigned int  savedetflag;     /**< bit-mask for storage of different types of detected photon data */
+    unsigned int  totalsource;     /**< total source number when multiple sources are defined */
+    int reserved[1];               /**< reserved fields for future extension */
 } History;
 
 /**
@@ -147,7 +161,7 @@ typedef struct MCXGPUInfo {
     int core;                     /**< number of stream processors */
     int autoblock;                /**< optimized number of blocks to launch */
     int autothread;               /**< optimized number of threads to launch */
-    int maxgate;                  /**< max number of time gates that can be saved in one call */
+    unsigned int maxgate;         /**< max number of time gates that can be saved in one call */
     int maxmpthread;              /**< maximum thread number per multi-processor */
 } GPUInfo;
 
@@ -186,7 +200,7 @@ typedef struct MCXConfig {
 
     unsigned int maxgate;         /**<simultaneous recording gates*/
     int respin;                   /**<number of repeatitions (if positive), or number of divisions (if negative)*/
-    unsigned int printnum;        /**<number of printed threads (for debugging)*/
+    int printnum;                 /**<number of printed threads (for debugging)*/
     int gpuid;                    /**<the ID of the GPU to use, starting from 1, 0 for auto*/
 
     unsigned int* vol;            /**<pointer to the volume*/
@@ -207,11 +221,13 @@ typedef struct MCXConfig {
     char issaveexit;             /**<1 save the exit position and dir of a detected photon, 0 do not save*/
     char issaveref;              /**<1 save diffuse reflectance at the boundary voxels, 0 do not save*/
     char ismomentum;             /**<1 to save momentum transfer for detected photons, implies issavedet=1*/
+    char istrajstokes;           /**<1 to save Stokes vector for trajectory data only */
     char isdumpjson;             /**<1 to save json */
     char internalsrc;            /**<1 all photons launch positions are inside non-zero voxels, 0 let mcx search entry point*/
     int  zipid;                  /**<data zip method "zlib","gzip","base64","lzip","lzma","lz4","lz4hc"*/
     char srctype;                /**<0:pencil,1:isotropic,2:cone,3:gaussian,4:planar,5:pattern,\
-                                         6:fourier,7:arcsine,8:disk,9:fourierx,10:fourierx2d,11:zgaussian,12:line,13:slit*/
+                                         6:fourier,7:arcsine,8:disk,9:fourierx,10:fourierx2d,11:zgaussian,\
+                                         12:line,13:slit,14:pencilarray,15:pattern3d,16:hyperboloid,17:ring*/
     char outputtype;             /**<'X' output is flux, 'F' output is fluence, 'E' energy deposit*/
     char outputformat;           /**<'mc2' output is text, 'nii': binary, 'img': regular json, 'ubj': universal binary json*/
     char faststep;               /**<1 use tMCimg-like approximated photon stepping (obsolete) */
@@ -244,6 +260,7 @@ typedef struct MCXConfig {
     float workload[MAX_DEVICE];  /**<an array storing the relative weight when distributing photons between multiple GPUs*/
     int parentid;                /**<flag for testing if mcx is executed inside matlab*/
     unsigned int runtime;        /**<variable to store the total kernel simulation time in ms*/
+    char langid[MAX_LANG_ID];    /**<lanage id, a string*/
 
     double energytot;            /**<total launched photon packet weights*/
     double energyabs;            /**<total absorbed photon packet weights*/
@@ -257,9 +274,14 @@ typedef struct MCXConfig {
     float* dx;                   /**< anisotropic voxel spacing for x-axis */
     float* dy;                   /**< anisotropic voxel spacing for y-axis */
     float* dz;                   /**< anisotropic voxel spacing for z-axis */
-    char bc[12];                 /**<boundary condition flag for [-x,-y,-z,+x,+y,+z, det(-x,-y,-z,+x,+y,+z)] */
+    char bc[13];                 /**<boundary condition flag for [-x,-y,-z,+x,+y,+z, det(-x,-y,-z,+x,+y,+z)], last element is always NULL for string termination */
     unsigned int nphase;         /**< number of samples for inverse-cdf, will be added by 2 to include -1 and 1 on the two ends */
     float* invcdf;               /**< equal-space sampled inversion of CDF(cos(theta)) for the phase function of the zenith angle */
+    unsigned int nangle;         /**< number of samples for inverse-cdf of launch angle, will be added by 2 to include -1 and 1 on the two ends */
+    float* angleinvcdf;          /**< equal-space sampled inversion of CDF(cos(theta)) for the phase function of the zenith angle of photon launch */
+    int srcid;                   /**< flag to control the simulation of multiple sources */
+    unsigned int extrasrclen;    /**< length of additional sources */
+    ExtraSrc* srcdata;           /**< buffer to store multiple source input data */
 } Config;
 
 #ifdef  __cplusplus
@@ -279,7 +301,7 @@ void mcx_parsecmd(int argc, char* argv[], Config* cfg);
 void mcx_usage(Config* cfg, char* exename);
 void mcx_printheader(Config* cfg);
 void mcx_loadvolume(char* filename, Config* cfg, int isbuf);
-void mcx_normalize(float field[], float scale, int fieldlen, int option, int pidx, int srcnum);
+void mcx_normalize(float field[], float scale, size_t fieldlen, int option, int pidx, int srcnum);
 void mcx_kahanSum(float* sum, float* kahanc, float input);
 int  mcx_readarg(int argc, char* argv[], int id, void* output, const char* type);
 void mcx_printlog(Config* cfg, char* str);
@@ -287,8 +309,8 @@ int  mcx_remap(char* opt);
 void mcx_maskdet(Config* cfg);
 void mcx_dumpmask(Config* cfg);
 void mcx_version(Config* cfg);
-void mcx_convertrow2col(unsigned int** vol, uint3* dim);
-void mcx_convertrow2col64(size_t** vol, uint3* dim);
+void mcx_convertrow2col(unsigned int* vol, uint3* dim);
+void mcx_convertrow2col64(size_t* vol, uint3* dim);
 void mcx_convertcol2row(unsigned int** vol, uint3* dim);
 void mcx_convertcol2row4d(unsigned int** vol, uint4* dim);
 int  mcx_loadjson(cJSON* root, Config* cfg);
@@ -304,16 +326,21 @@ void mcx_flush(Config* cfg);
 int  mcx_run_from_json(char* jsonstr);
 float mcx_updatemua(unsigned int mediaid, Config* cfg);
 void mcx_savejdata(char* filename, Config* cfg);
-int  mcx_jdataencode(void* vol,  int ndim, uint* dims, char* type, int byte, int zipid, void* obj, int isubj, Config* cfg);
+int  mcx_jdataencode(void* vol,  int ndim, uint* dims, char* type, int byte, int zipid, void* obj, int isubj, int iscol, Config* cfg);
 int  mcx_jdatadecode(void** vol, int* ndim, uint* dims, int maxdim, char** type, cJSON* obj, Config* cfg);
-void mcx_savejnii(float* vol, int ndim, uint* dims, float* voxelsize, char* name, int isfloat, Config* cfg);
-void mcx_savebnii(float* vol, int ndim, uint* dims, float* voxelsize, char* name, int isfloat, Config* cfg);
+void mcx_savejnii(float* vol, int ndim, uint* dims, float* voxelsize, char* name, int isfloat, int iscol, Config* cfg);
+void mcx_savebnii(float* vol, int ndim, uint* dims, float* voxelsize, char* name, int isfloat, int iscol, Config* cfg);
 void mcx_savejdet(float* ppath, void* seeds, uint count, int doappend, Config* cfg);
 int  mcx_svmc_bgvoxel(int vol);
 void mcx_loadseedjdat(char* filename, Config* cfg);
 void mcx_prep_polarized(Config* cfg);
 void mcx_replayinit(Config* cfg, float* detps, int dimdetps[2], int seedbyte);
 void mcx_validatecfg(Config* cfg, float* detps, int dimdetps[2], int seedbyte);
+int  mcx_float2half2(float input[2]);
+cJSON* mcx_parsejson(const char* jbuf);
+
+extern cJSON* mcx_lang;       /**< JSON object holding the translations of the specified language */
+char* T_(const char* str);    /**< string translation function */
 
 #ifdef MCX_CONTAINER
 #ifdef __cplusplus
@@ -326,9 +353,9 @@ void mcx_python_flush(void);
 
 #if defined(MCX_CONTAINER) && (defined(MATLAB_MEX_FILE) || defined(OCTAVE_API_VERSION_NUMBER))
 #ifdef _OPENMP
-#define MCX_FPRINTF(fp,...) {if(omp_get_thread_num()==0) mexPrintf(__VA_ARGS__);}  /**< macro to print messages, calls mexPrint if inside MATLAB */
+#define MCX_FPRINTF(fp,...) {if(omp_get_thread_num()==0) {(fp==stderr) ? mexPrintf(__VA_ARGS__) : fprintf(fp,__VA_ARGS__);}}  /**< macro to print messages, calls mexPrint if inside MATLAB */
 #else
-#define MCX_FPRINTF(fp,...) mexPrintf(__VA_ARGS__) /**< macro to print messages, calls mexPrint in MATLAB */
+#define MCX_FPRINTF(fp,...) {(fp==stderr) ? mexPrintf(__VA_ARGS__) : fprintf(fp,__VA_ARGS__);} /**< macro to print messages, calls mexPrint in MATLAB */
 #endif
 #else
 #define MCX_FPRINTF(fp,...) fprintf(fp,__VA_ARGS__) /**< macro to print messages, calls fprintf in command line mode */

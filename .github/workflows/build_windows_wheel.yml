@@ -1,4 +1,4 @@
-name: Build and Upload Windows Python Wheels
+name: Build+Upload Windows Python Wheels
 on:
   push:
     branches:
@@ -13,10 +13,10 @@ on:
 jobs:
   build_windows_wheels:
     name: Build Windows wheels
-    runs-on: windows-2019
+    runs-on: windows-2022
     strategy:
       matrix:
-        python_version: [ '3.6', '3.7', '3.8', '3.9', '3.10', '3.11', 'pypy3.7', 'pypy3.8', 'pypy3.9']
+        python_version: [ '3.6', '3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', 'pypy3.7', 'pypy3.8', 'pypy3.9', 'pypy3.10']
     outputs:
       perform_pypi_upload: ${{ steps.perform_pypi_upload_check.outputs.perform_pypi_upload }}
     steps:
@@ -34,6 +34,18 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python_version }}
+      - name: Install Visual Studio 2019 Build Tools (for cuda 10)
+        run: |
+          choco install visualstudio2019buildtools --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64" -y
+      - name: Setup MSVC environment (Windows only)
+        shell: cmd
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          echo PATH=%PATH% >> %GITHUB_ENV%
+          echo INCLUDE=%INCLUDE% >> %GITHUB_ENV%
+          echo LIB=%LIB% >> %GITHUB_ENV%
+          echo VCINSTALLDIR=%VCINSTALLDIR% >> %GITHUB_ENV%
       - name: Install CUDA
         uses: Jimver/cuda-toolkit@v0.2.10
         id: cuda-toolkit
@@ -41,22 +53,25 @@ jobs:
           cuda: '10.2.89'
           method: 'network'
           sub-packages: '["nvcc"]'
-      - name: Install CUDA
+      - name: Setup CUDA
         run: |
           $CUDA_PATH=Get-ChildItem "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA" -filter "v*.*" -Directory | % { $_.fullname }
           echo "CUDA_PATH=$CUDA_PATH" >> $env:GITHUB_ENV
           echo "CUDA_TOOLKIT_ROOT_DIR=$CUDA_PATH" >> $env:GITHUB_ENV
       - name: Install Zlib Dev
         run: |
-          curl.exe --retry 3 -kL https://cytranet.dl.sourceforge.net/project/gnuwin32/zlib/1.2.3/zlib-1.2.3-lib.zip --output zlib.zip
+          curl.exe --retry 3 -kL https://sourceforge.net/projects/gnuwin32/files/zlib/1.2.3/zlib-1.2.3-lib.zip/download --output zlib.zip
           Expand-Archive .\zlib.zip -DestinationPath zlib\
           echo "CMAKE_INCLUDE_PATH=$PWD\zlib\include" >> $env:GITHUB_ENV
           echo "CMAKE_LIBRARY_PATH=$PWD\zlib\lib" >> $env:GITHUB_ENV
           rm zlib.zip
       - name: Build Wheels
+        env:
+          CMAKE_GENERATOR: "Visual Studio 16 2019"
+          CMAKE_GENERATOR_PLATFORM: "x64"
         run: |
           cd pmcx/
-          pip install wheel
+          pip install wheel setuptools
           python setup.py bdist_wheel
           ls dist/
           mv dist/ ../
@@ -66,9 +81,9 @@ jobs:
         run: |
           bash $env:GITHUB_WORKSPACE/.github/check-pypi-upload.sh
       - name: Prepare Wheels for Upload
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: windows-wheels
+          name: windows-wheels-${{ matrix.python_version }}
           path: dist/
 
   upload_windows_wheels:
@@ -77,9 +92,10 @@ jobs:
     if: ${{ github.repository_owner == 'fangq' && needs.build_windows_wheels.outputs.perform_pypi_upload == 1 && github.event_name != 'pull_request'}}
     steps:
       - name: Download Wheels from Build Job
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: windows-wheels
+          pattern: windows-wheels-*
+          merge-multiple: true
           path: dist/
       - name: Upload packages to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

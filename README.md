@@ -4,10 +4,14 @@ Monte Carlo eXtreme (MCX) - CUDA Edition
 
 -   Author: Qianqian Fang (q.fang at neu.edu)
 -   License: GNU General Public License version 3 (GPLv3)
--   Version: 1.9.7 (v2022.10, Heroic Hexagon)
--   Website: <http://mcx.space>
+-   Version: 2.8 (v2025.6.pre, Kilo-Kelvin)
+-   Website: <https://mcx.space>
+-   Download: <https://mcx.space/wiki/?Get>
 
-[![Build Status](https://travis-ci.com/fangq/mcx.svg?branch=master)](https://travis-ci.com/fangq/mcx)
+![Mex and Binaries](https://github.com/fangq/mcx/actions/workflows/build_all.yml/badge.svg)\
+![Linux Python Module](https://github.com/fangq/mcx/actions/workflows/build_linux_manywheel.yml/badge.svg)\
+![MacOS Python Module](https://github.com/fangq/mcx/actions/workflows/build_macos_wheel.yml/badge.svg)\
+![Windows Python Module](https://github.com/fangq/mcx/actions/workflows/build_windows_wheel.yml/badge.svg)
 
 Table of Content:
 
@@ -38,341 +42,160 @@ Table of Content:
 What's New
 -------------
 
-MCX v2022.10 introduces a major new feature - split-voxel MC (SVMC), published in 
-Biomedical Optics Express recently by Shijie Yan and Qianqian Fang, see 
-[Yan2020](https://www.osapublishing.org/boe/abstract.cfm?uri=boe-11-11-6262) for details.
-Shortly, SVMC provides a level of accuracy close to mesh-based MC (MMC) in modeling
-curved boundaries but it is 4x to 6x faster than MMC. Several demo scripts of SVMC 
-can be found in the MCXLAB package under examples/demo_svmc_\*. In addition, MCX v2022.10
-supports GPU-based polarized light simulation, see our JBO paper
-[Yan2022](https://doi.org/10.1117/1.JBO.27.8.083015). This release also includes
-both the web-client and server scripts for MCX Cloud - an in-browser MC simulator
-as we reported in [Fang2022](https://doi.org/10.1117/1.JBO.27.8.083008). Moreover, MCX
-v2022.10 provides an official pymcx module to run stream-lined MCX simulations in
-Python, offering mcxlab-like interface.
+MCX v2025 is a maintenance release with multiple bug fixes and minor new features. It is highly
+recommended to upgrade for all users.
 
--   Introduced Split voxel MC (SVMC) to accurately model curved boundaries
--   GPU polarized light modeling (Stokes) with 900x speedup
--   Web-based MCX Cloud platform including web-client and server scripts
--   pymcx - an mcxlab-like Python module for running MCX simulations in Python
--   Added Debian/Ubuntu packages for easy installation
--   Added a unified command line interface, photon, to call mcx/mcxcl/mmc
--   Fine-tuned Windows installer
--   Support CMake in Travis-CI automation
+Notable major bug fixes include
+- a high priority bug #222, introduced in 198cd34, was fixed. this bug affects all simulations
+  since v2023. Particularly, when a photon has a long pathlength, with weight drops to numerical 0,
+  its pathlength data is carried in the immediately launched new photon, causing skews in the
+  detected photon pathlength distributions
+- further updates to the handling of low absorption medium (#164), previously affect not-so-low mua values
+- a bug fix related to multi-source simulation to properly return the source ID (#217)
+- fix angleinvcdf and invcdf in pmcx that was previously not enabled (#233)
+- fix svmc flipped normal direction only in mcxlab for Octave (#221)
+- fix continuous media nan handling (#224, #225)
+- fix the bug that prevents the use of photon-sharing with pattern3d source
+- correctly store detector ID and initial launch pixel index in pattern3d photon-sharing simulations
+- for all brain related simulations, we have updated the CSF mua value of 0.004/mm that was
+  previously used in Custo et al. 2006 paper to 0.0004/mm, matching its upstream reference Strangman et al. 2003.
+  However, we want to highlight that both literature may not provide the best mua value for CSF - as such low
+  mua/mus CSF properties are mostly for CSF in the inner part of the brain, but not representiative to those in
+  the subarachnoid space. A few literature have shown that CSF in the subarachnoid space may have a higher
+  mus' value, in the range between 0.16/mm to 0.32/mm, as shown in Okada et al. 2003
 
-A detailed list of updates is summarized below (key features marked with “\*”):
+1. [Okada_2003]
+E. Okada and D. T. Delpy, "Near-infrared light propagation in an adult head model. I. Modeling of low-level scattering in the cerebrospinal fluid layer," Applied Optics 42, 2906–2914 (2003)
+2. [Custo_2006]
+A. Custo, W. M. Wells III., A. H. Barnett, et al., "Effective scattering coefficient of the cerebral spinal fluid in adult head models for diffuse optical imaging," Applied Optics 45, 4747 (2006)
+3. [Strangman_2003]
+G. Strangman, M. A. Franceschini, and D. A. Boas, "Factors affecting the accuracy of near-infrared spectroscopy concentration calculations for focal changes in oxygenation parameters," NeuroImage 18, 865–879 (2003)
 
-- 2022-10-05 [dc42951] prevent nan where log(rand) is calculated
-- 2022-10-05 [63ffc1e] fix nan in detected photon data when using hyperboloid src, see https://groups.google.com/g/mcx-users/c/vyfHbzEO-0M/m/JzlpEZ3TBwAJ
-- 2022-09-07 [e281f3e] allow to preview continuously varying medium (4D cfg.vol)
-- 2022-08-19 [10330ef] fix windows compilation error
-- 2022-08-17 [bbb4425] prevent zero-valued mus creating nan, #133
-- 2022-08-12 [51f42f5] fix mcxlab log printing caused by commit f3beb75a
-- 2022-08-12 [7058785] Lambertian launch for all focusable sources when focal-length is -inf
-- 2022-07-28 [6d64c0b] fix incorrect flag for skipvoid
-- 2022-06-27 [3d4fb26] partially fix rf replay
-- 2022-06-04 [8af3631] fix line source
-- 2022-05-22 [149b1ef] make code compile on windows
-- 2022-05-20 [e87bb49] use consistent file naming convention, remove outdated units
-- 2022-05-20 [45d84d3] complete reformat source code using astyle, always run make pretty before committing
-- 2022-05-20 [aff8ff0] add source code formatting option
-- 2022-05-20 [f3beb75] use MATLAB_MEX_FILE to determine container environment
-- 2022-05-18 [1295024] fix incorrect trajectory id, fix #147
-- 2022-05-18 [ccd2deb] fix macro condition
-- 2022-05-18 [6f4ee88] use MCX_CONTAINER and env macros to replace extra PYMCX_CONTAINER
-- 2022-05-16 [6fa1580] avoid using clear all and ~ in return value
-- 2022-05-16 [21f9bd7] merge changes with @ShijieYan's svmc fix
-- 2022-05-16 [8b2740f] debugging svmc crashes
-- 2022-05-16 [7582a6e] fix svmc issue after patch f8da832f11b751c07d33c77dd7d428a2c75a888b
-- 2022-05-15 [188ac2a] Added Pybind11's license info to README.md.
-- 2022-05-15 [86529cf] Added PYMCX_CONTAINER compilation macro. Added support for extracting MCX_ERRORs like Mex + author fix.
-- 2022-05-15 [b58ad88] Renamed gpu_info to gpuinfo for consistency.
-- 2022-05-15 [0582974] changed issaveref to accept ints.
-- 2022-05-15 [1cf1b3b] Added py::value_error handling + additional error checking for volume assurance.
-- 2022-05-15 [7df8938] Added better + more informative exception handling for pymcx.
-- 2022-05-15 [6a741e8] Changed reinterpret_casts to direct object construction + added the stat dict to the output dict + defined PYBIND11_DETAILED_ERROR_MESSAGES for easier debugging.
-- 2022-05-15 [e4547ba] add pybind11 as submodule to build pymcx
-- 2022-05-13 [f8da832] fix cyclic bc demo and srctype demo error, svmc still not working
-- 2022-05-13 [4bd3974] report register counts on sm_60 using nvcc --ptxas-options=-v
-- 2022-05-13 [e8f6a2d] fix cfg.unitinmm does not exist error
-- 2022-05-13 [447975f] complete dda ray-marching, cube60 benchmark gain 40% speed, others are similar
-- 2022-05-12 [b873f90] add integer voxel indices to avoid nextafter
-- 2022-05-11 [32d46cd] merge additional updates from mcxcl version of json2mcx, #139
-- 2022-05-11 [3d6d7df] fix bugs in json2mcx, #139
-- 2022-05-08 [3b1c320] Removed nlhs argument left from Matlab.
-- 2022-05-08 [61cc994] Fixed issue with std::cout and std::cerr flush.
-- 2022-05-06 [d9793e9] Added working setup.py.
-- 2022-05-03 [a3e47c8] Minor fix.
-- 2022-05-02 [c9bedd6] Moved validate_config.
-- 2022-05-02 [5427ece] Working prototype with different volume configs.
-- 2022-05-02 [739b7ea] Moved some stuff to interface-common.cpp.
-- 2022-05-02 [d852a87] Minor bug fixes.
-- 2022-05-01 [f4cd3c3] Added kwargs version of mcx.
-- 2022-05-01 [baa5fdd] Skeleton is done.
-- 2022-04-24 [e919716] Prints GPU info.
-- 2022-04-23 [0c7b6a7] Working interface and CMakeLists.txt file.
-- 2022-04-19 [c710c3c] update ubj parser, update jnifti metadata
-- 2022-04-15 [4033c54] mcxlab bug fix: digimouse atlas voxel size is 0.2mm, not 0.8mm
-- 2022-04-15 [9b17eee] critical bug fix: digimouse atlas voxel size is 0.2mm, not 0.8mm
-- 2022-03-31 [df6c311] Add viewing axis selection
-- 2022-03-25 [04f1565] Add optimized isosurface rendering; add the ability to view cross-sectional slices of geometry
-- 2022-03-23 [200decb] Remove testing files
-- 2022-03-23 [e434553] Remove unnecessary variable
-- 2022-03-22 [ebd5bee] update ubj to support BJData Draft 2, add JNIfTI _DataInfo_, fix #142
-- 2022-03-21 [6de0855] Enable event-based repainting; re-add shader refinement, remove animation frame bugs; remove unnecessary shader branches and discards
-- 2022-03-19 [7ef65a8] Added event-based repainting; shader optimizations
-- 2022-03-05 [a93f6fa] save user info in local storage to avoid retyping
-- 2022-03-05 [34d9afa] fix SaveDataFlag invisible bug
-- 2022-02-18 [f051314] add missing voxel unit
-- 2022-02-03 [23bf5b2] lowering default photon number so it can be launched on most gpus
-- 2022-01-31 [220d9c2] fix incorrect type for gsmatrix
-- 2022-01-31 [28e20d6] fix windows vs warning
-- 2022-01-29 [6a9ad2f] update mcx_utils to use the Mie interface
-- 2022-01-29 [13679e9] fix compilation issue of mcx_mie.cpp using MSVC, close #138
-- 2022-01-28 [d7daf57] manually resolve complaint in CUDA 9
-- 2022-01-28 [e99edb2] update .travis.yml
-- 2022-01-28 [533c8ce] manually add mcx_mie in Makefile
-- 2022-01-28 [e56b5cb] improve complex arithmetic compatablity with MSVC
-- 2022-01-27 [a0ed0e7] add Mie function modules into cmake
-- 2022-01-27 [c350c67] seperate Mie scattering functions from mcx_utils.h
-- 2022-01-27 [0d51bb7] add missing i detflag in command line
-- 2022-01-27 [9b74e4b] fix: add save detector flag for Stokes vectors
-- 2022-01-26 [077060a] use static_cast in mcxlab so that cfg.vol can be realloc in mcx_shapes
-- 2022-01-26 [8503125] do not reset cfg.vol when rasterizing cfg.shapes
-- 2022-01-26 [3f22070] fix normalization in multiple detector RF replay
-- 2022-01-26 [cdfd468] apply normalization to both real and imaginary jacobain for RF replay
-- 2022-01-26 [87a310e] one can use ~ to ignore fluence output in octave, not in matlab
-- 2022-01-26 [d45f084] allow users to explicitly disable fluence output by accepting cfg.issave2pt
-- 2022-01-25 [376a730] partial fix to RF Jacobian calculation, need verification
-- 2022-01-25 [d6e2b9e] NaN value in mua_float and muamus_float signifies a 0-value voxel
-- 2022-01-24 [c9f2ad9] force threejs version to avoid breaking update in R136
-- 2022-01-14 [51483eb] add template specialization for polarized mode
-- 2022-01-12 [3487dfe] update the example for the polarized MCX
-- 2021-12-15 [b9e046a] fix out of bounds error due to limited precision of R_PI
-- 2021-12-15 [3b10265] fix the built-in example to match the update in e5dfd78f28f31d710e02206cb2835aabcd4d5508
-- 2021-12-15 [dbe17af] no Stoke vector output for unpolarized MCX simulation
-- 2021-12-15 [99293dd] add sanity check for incident Stokes vector
-- 2021-12-13 [f1537bd] no need to check constant memory usage in polarized mode
-- 2021-12-13 [61281ae] use prop.g to return the anisotropy computed from Mie
-- 2021-12-12 [3b0ecc0] fix #133, handling underflowing denorms in float to half conversion for muamus_float
-- 2021-12-11 [979f691] Move scattering matrix from constant memory to global memory
-- 2021-11-29 [5c13f4b] avoid divided by zero on windows cygwin gcc
-- 2021-11-29 [ef57f4b] allow make double to compile
-- 2021-11-28 [0c96fe8] accept JData styled NaN in the JSON input for srcdir
-- 2021-11-26 [a4545a4] fix #131, mcxplotshapes now plots shapes with correct scale
-- 2021-11-04 [2585471] making svmc matlab demos compatible with Octave 5
-- 2021-11-03 [5976811] replace matlab-only function with more portable code
-- 2021-11-01 [37e121c] update preprint version url
-- 2021-10-21 [7a77bf7] display rendering frame rate
-- 2021-10-18 [99592c1] fix: #114 improve robustness to unknown boundry conditions
-- 2021-10-14 [1aa2922] feat: Add one-sheet hyperboloid gaussian beam
-- 2021-10-07 [86d56c2] feat: output prop. along with det. photon profile
-- 2021-10-07 [24f4698] fix: ensure the largest grid to be accumulated
-- 2021-10-06 [e5dfd78] feat: Support target mus or musp in polarized MCX
-- 2021-10-06 [ae9216d] remove old det photon data after a new simulation
-- 2021-10-05 [8cb21b5] support downloading detected photon data in mcxcloud
-- 2021-10-04 [81ff4b1] fix rf replay bugs reported by Pauliina Hirvi
-- 2021-09-24 [833bf6a] Reorganize some kernel code to optimize SVMC speed
-- 2021-09-20 [605c15f] Fix numerical error of intersection test in SVMC
-- 2021-09-20 [392ee87] Reorder code to fix photon detection for SVMC
-- 2021-09-07 [5c44c6e] fix trajectory saving buffer length bug
-- 2021-08-20 [99ea2b6] avoid continuous mua/mus inputs be treated as 0-label if mua=mus=0
-- 2021-08-01 [943197a] Reorder preprocessing code to allow detector in SVMC Mask detector voxels only after the volume has been fully prepared!
-- 2021-07-27 [65359f7] avoid extra level of square brackets for Optode.Detector
-- 2021-07-27 [6b2f074] accept 3-element param1
-- 2021-07-27 [2633bfb] avoid param1 missing error if not present
-- 2021-07-23 [192613b] fix offset of cylinder along the axis direction, close #119
-- 2021-07-17 [fc0465d] add tutorial 2 link
-- 2021-07-17 [8c72d17] restore accidentally removed analytics tag
-- 2021-07-13 [566df5e] provide flags to help access the detp.jdat file
-- 2021-07-12 [b97c0f6] return metadata when loading simulation from library
-- 2021-07-12 [3be6603] add default tab in the direct link,return mcx error if failed
-- 2021-07-12 [70fb2a7] fix mixlabel byte order
-- 2021-07-11 [24df0c3] add comment on raw voxel binary data layout
-- 2021-07-07 [53d7ac0] fix shared mem misalignment error, close #118
-- 2021-07-06 [7f8a2ac] allow ArrayZipSize to accept 1x2 array
-- 2021-07-05 [9b00fa3] fix initial tab
-- 2021-07-05 [2737853] deep copy data.options to avoid script error
-- 2021-07-05 [0398b95] fix several bug while recording utorials
-- 2021-07-04 [f5974ed] add preprint link
-- 2021-07-04 [5d21a0d] create mcx cloud tutorial, add link
-- 2021-07-03 [df0a48b] support tab param in url to open default tab
-- 2021-07-03 [4c3f240] link json in direct link, remove schema
-- 2021-07-03 [da6595e] add newline to json file download
-- 2021-07-03 [cc3c06d] fix X/Y/ZSlabs parsing, restore original schemas
-- 2021-07-03 [7c5054d] internal normalization of srcdir
-- 2021-07-02 [877e9fe] get user id and group at runtime
-- 2021-07-02 [22d6ffe] fix X/Y/ZSlabs schemas
-- 2021-07-01 [270bb7c] prepare for beta testing
-- 2021-06-30 [4b6df28] rename mcxone to mcxcloud, add help info
-- 2021-06-30 [66b77fb] partial fix of json2mcx.m conversion issues
-- 2021-06-25 [c399efa] enable negative g value support
-- 2021-06-23 [3c642ce] set maximum characters to read for fscanf, fix #117
-- 2021-06-23 [606b3d1] handle empty detector array in json2mcx
-- 2021-06-22 [b537143] give a warning if the output type is not jacobian in replay
-- 2021-06-17 [363d2d8] support reading .jdat file for replay
-- 2021-06-04 [7191ca3] make thumbnail the same size when updating
-- 2021-06-04 [5a2e13e] add tab overflow control
-- 2021-06-04 [59e6be2] layout adjustments
-- 2021-06-04 [4b55c88] minor polishing
-- 2021-06-03 [1c29578] fix regression
-- 2021-06-03 [3aedee6] add LengthUnit, MediaFormat in schema, support number and string for DebugFlag/SaveDataMask
-- 2021-06-03 [64c5dd0] fix unnecessary shared memory allocation related to invcdf
-- 2021-06-03 [ebf1ea1] support user-defined phase functions via cfg.invcdf, close #13
-- 2021-06-03 [0731511] revert back to no restarting policy so that overtime jobs can be killed
-- 2021-06-02 [4d2a891] process cache,fix fullname,fix job status,fix server-side limit,kill overtime job
-- 2021-06-02 [a08d676] update the skinvessel benchmark
-- 2021-06-02 [168db14] feat: save Mie function outputs mus, g to a file
-- 2021-06-02 [57a44c5] feat: Add anisotropy g as an output of Mie func.
-- 2021-06-02 [7387394] finally fix crossdomain post, change jsonp to json,test simu lib edit
-- 2021-06-01 [95c6e1d] test:use default BC for all polarizedMC benchmarks
-- 2021-06-01 [98697de] Add a three-layer slab demo for polarizedMC
-- 2021-06-01 [7d86804] Add visualization for polarized MC example(MATLAB)
-- 2021-05-31 [7d82a51] fix: resolve valgrind complaint: uninit. values
-- 2021-05-31 [d6c9743] Add outputs in mcx2json.m to support polarizedMC
-- 2021-05-31 [5088678] Add an example for polarized MC
-- 2021-05-31 [d3054fd] Add document for polarized MC in mcxlab
-- 2021-05-31 [44e0e9c] fea: extend loadmch.m to load output Stokes vector
-- 2021-05-31 [a51cb52] feat: support polarized MC in command line (JSON)
-- 2021-05-30 [d7921fe] skip checklimit if json is directly loaded from lib
-- 2021-05-30 [65870f5] gui fine adjustment,use hash to update runcount,enable restart on fail,permit mcxpub update
-- 2021-05-30 [692adfb] fix broken link
-- 2021-05-30 [7a159ab] merge css
-- 2021-05-30 [55bb1ea] initial drag and drop support, not working
-- 2021-05-30 [fc9ca38] add meta headers, other minor adjustments
-- 2021-05-29 [96cf071] support embedding src pattern in the all-in-one json/jdata file
-- 2021-05-28 [450462c] Add document for functions used in polarized MC
-- 2021-05-28 [cbc3340] Optimize Stokes vector computation
-- 2021-05-28 [9bd2ce0] Remove redundant code in preprocessing
-- 2021-05-28 [06a9c6b] fix: resolve nan results due to numerical error
-- 2021-05-28 [d9d1d0a] rewrite some code to save computation
-- 2021-05-28 [9195141] Add an example to show polarized photon simulation
-- 2021-05-27 [2b87275] fix: rewrite code for better readability
-- 2021-05-26 [d836c81] fix: correct formula for stokes parameter update
-- 2021-05-25 [105d5a9] feat: Add stokes parameter output in MCXLAB
-- 2021-05-25 [87d8847] feat: add polarized photon simulation
-- 2021-05-23 [d398cc9] add simulation restrictions for initial public testing of mcx cloud
-- 2021-05-23 [26536d3] feat: add preprocessing for polarized MC in mcxlab
-- 2021-05-22 [f0975c5] support ring/annulus shaped source via disk source
-- 2021-05-21 [6ed9727] support svmc in command line;add svmc example
-- 2021-05-21 [3d0a793] reading 8-byte svmc volume format from input file
-- 2021-05-20 [4010d99] move svmc repacking to mcx_preprocess
-- 2021-05-20 [3214c1b] remove duplicated preprocessing codes in mcx and mcxlab,fix detbc bug in command line
-- 2021-05-20 [54b0602] run batch of jobs in each call to fill all GPU devices
-- 2021-05-20 [de9850c] add -K short option and svmc mediatype
-- 2021-05-19 [660a8b8] relocate db and workspace folder to non www-data accessible paths
-- 2021-05-19 [64f3008] update acknowledgement list
-- 2021-05-19 [c168a87] can update thumbnail, add credit links
-- 2021-05-19 [b9361a1] update to mcxcloud scripts
-- 2021-05-15 [cef630b] save volume in jdata format by default
-- 2021-05-15 [c50f871] define Frequency in json file instead of Omega
-- 2021-05-15 [b4e7b57] initial support RF mua Jacobian in replay, thx Ilkka Nissilä, formula based on Juha Heiskala PhD thesis p45
-- 2021-05-10 [073b168] mcxcloud initial preview at JBO hot-topics
-- 2021-05-05 [5732e6a] update front and backends
-- 2021-05-01 [ee3f88d] update and rename mcxcloudd and mcxserver.cgi
-- 2021-05-01 [eac952d] fix cylinder schema, add footer
-- 2021-04-14 [aaa1eab] add download, fix jsonp callback, render output volume
-- 2021-04-10 [aaef1f3] draw 3d fluence,use orth camera,add cancel
-- 2021-04-04 [4ab8105] add src rendering, fix material color
-- 2021-04-02 [1ed5272] fix cylinder and layer object drawing bug
-- 2021-04-02 [f4ba0b4] add md5 digest for each submitted json for cache lookup
-- 2021-03-31 [2c55c3b] change basic tab name
-- 2021-03-31 [3c466a1] now mcxcloud can render 3D volumes, float32 buffer only
-- 2021-03-29 [b379b2b] initial support in rendering 3d volume, add schema to support jdata ND array
-- 2021-03-28 [31345a1] support Domain.Volume to encode JData-formatted 3D array
-- 2021-03-28 [9c2e8c7] rendering all shape types, bbx as dashed box,add tag based material color
-- 2021-03-27 [9f6e82c] avoid repainting preview
-- 2021-03-26 [5109d29] add normal material, add box, subgrid and cylinder
-- 2021-03-25 [ad0b814] draw grid from Domain.Dim
-- 2021-03-25 [9b0cf95] fine tune fonts, add big tab initial screen, add svg background, add funding info
-- 2021-03-25 [77f8f7a] add three.js for 3d preview
-- 2021-03-24 [4274c77] rename mcxcloud.txt to mcxcloud
-- 2021-03-24 [dc25a87] add mcx cloud service server and client files, partially working
-- 2021-03-22 [f9bc07c] use tabs in mcxone, add jquery by default
-- 2021-03-18 [d8b88e1] fix unwanted double-precision math functions
-- 2021-03-11 [f6ce5bd] update variable and function name to follow the convention
-- 2021-03-11 [ca2ce60] add example: comparison of surface diffuse reflectance between MC and Diffusion
-- 2021-03-05 [bcbb324] change window sizes using 96dpi default setting
-- 2021-03-05 [5c8d27f] fix Name shape object schema
-- 2021-03-03 [02add69] MCX json schema and json editor are working, added more Shapes objects
-- 2021-03-01 [940d725] wrapping up json input import feature in mcxstudio
-- 2021-02-28 [64d629c] parse src/detector, media and shape
-- 2021-02-27 [a3b8457] \* open/import JSON input file in MCX Studio
-- 2021-01-07 [9811c83] reorder the input data layout to match the change in preprocessing
-- 2020-10-22 [991910e] add function comment and revert unnecessary changes
-- 2020-10-22 [3343338] \* add benchmarks from SVMC paper to mcxlab
-- 2020-10-19 [de87cbf] resolve code alignment issue
-- 2020-10-18 [5acd287] fix photon detection issue for SVMC mode
-- 2020-10-18 [61dbf63] fix ray-tracing issue after the initial template implementation
-- 2020-10-17 [fbb4f8c] initial implementation of template for SVMC mode
-- 2020-10-08 [dad83c6] resolve conflict between two branches to elimate mismatch in demo_focus_mirror_bc.m
-- 2020-10-08 [fb61782] \* sync master branch into nuvox(SVMC) branch
-- 2020-09-20 [75f08c5] remove empty depends
-- 2020-09-20 [fa98229] fix incorrect dependency
-- 2020-09-20 [d748d29] add octave package files for mcxlab and mcxtools
-- 2020-09-16 [cf3b1f0] fix typo, change default exe path
-- 2020-09-16 [15e9946] \* fix warnings found by debian packaging at https://mentors.debian.net/package/mcx/
-- 2020-09-16 [04bb0e7] add man pages for other binaries
-- 2020-09-14 [aca9f97] remove additional debian packging warnings
-- 2020-09-14 [ce4e341] add desktop icon files
-- 2020-09-14 [eb0aa9f] allow new lines in string values in json
-- 2020-09-14 [4b1301a] set default exe folder to /usr/libexec, fall back to ~/bin/
-- 2020-09-14 [643e4a1] \* add photon as unified cmd for mcx/mcxcl/mmc,polish for debian packaging
-- 2020-09-14 [a67bc6d] updates to ease debian packaging
-- 2020-09-08 [8983305] Inno Installer Setup paths and file details fixed
-- 2020-09-07 [a6bc5a9] another attempt to fix #105
-- 2020-09-07 [ca303dd] change default shortcut group name, fix #105
-- 2020-09-06 [0313d4c] install mcxstudio to 64bit folder, close #105
-- 2020-09-04 [37b4914] add demo script for mirror bc
-- 2020-09-04 [e561890] make mcxplotvol work in matlab 2010 or earlier
-- 2020-09-04 [9518cfa] handle mirror bc correctly, close #104
-- 2020-09-04 [64896aa] \* reset pattern center position following a failed launch, fix #103
-- 2020-09-02 [5af2e76] fix -geometry 0x0 error, see https://forum.lazarus.freepascal.org/index.php?topic=40593.0
-- 2020-09-01 [dd4be78] add cubesph60b to match example/benchmark2
-- 2020-08-30 [971ffac] fix extended ascii letters
-- 2020-08-29 [6eb9596] update mcxcreate.m, add mcxplotshapes.m to render json shapes
-- 2020-08-29 [0199dad] clean up code and add comments for SVMC
-- 2020-08-29 [94d55a7] \* add mcxcreate, force mcxlab return one output
-- 2020-08-28 [d917751] give an error for unsupported single dash option
-- 2020-08-28 [093c9ba] \* add pre-processing for SVMC mode
-- 2020-08-28 [a79e116] add mode delphi in carbon unit
-- 2020-08-27 [63e5a5f] handle det radii less than or equal to 0.5, fix #101
-- 2020-08-27 [8f93ee2] fix make mex link error
-- 2020-08-26 [65f0fe4] fix issrcfrom0 offset
-- 2020-08-26 [79f9d70] \* multiply voxelsize with det radius
-- 2020-08-26 [d5c3c11] fix mcxpreview det radis issue, require srcpos and tend in mcxlab
-- 2020-08-24 [1af5507] avoid error on mac
-- 2020-08-24 [2fce8e5] add missing carbon unit for mac
-- 2020-08-24 [6f11857] add command line option cheatsheet
-- 2020-08-24 [5046de0] fix cmake command
-- 2020-08-24 [cea663b] test cmake in travis
-- 2020-08-24 [782b4a3] massive update of documentation
-- 2020-08-24 [041e386] massive update to README to describe all output formats
 
-Between 2020 and 2022, three new journal papers have been published as the 
-result of this project, including [Yan2020]. Please see the full list at 
-http://mcx.space/#publication
+In addition, in this release, we also added the following key new features
 
-* [Yan2020] Shijie Yan and Qianqian Fang* (2020), "Hybrid mesh and voxel based Monte Carlo
- algorithm for accurate and efficient photon transport modeling in complex bio-tissues," 
- Biomed. Opt. Express, 11(11) pp. 6262-6270.
-* [Fang2022] Qianqian Fang, Shijie Yan, "MCX Cloud—a modern, scalable, high-performance
- and in-browser Monte Carlo simulation platform with cloud computing," J. Biomed. Opt.
- 27(8) 083008, 2022
-* [Yan2022] Shijie Yan, Steven L. Jacques, Jessica C. Ramella-Roman, Qianqian Fang, 
- "Graphics processing unit-accelerated Monte Carlo simulation of polarized light in 
- complex three-dimensional media," J. of Biomedical Optics, 27(8), 083015 (2022)
+- the new `-N/--net` command line flag allows one to browse and run growing number of community-contributed
+  simulations hosted on https://neurojson.io (one can browse the list at https://neurojson.org/db/mcx)
+- mcx can read JSON input file from `stdin` (standard input) using pipe, allow one to use advanced text processing utilities in the shell,
+  such as `sed, perl, jq` to modify JSON inputs at runtime. For example `mcx -N cube60 --dumpjson | jq '.Forward.Dt=1e-10' | mcx -f`
+- a new shortcut option `-Q` for `--bench` to conveniently browse and run built-in benchmarks
+- a new demo script `demo_mcxlab_replay_traj.m` to show how to use replay to produce trajectories between source/detector
+- mcxlab and pmcx cam set `cfg.flog=1` or 0 to disable printing of mcx banner
+- setting a negative detector radius creates excluded detection areas, making it possible to create ring-shaped detectors
+
+The detailed updates can be found in the below change log
+
+* 2025-01-22 [24b445e] [bug] fix incorrect per-voxel pathlength when mua->0, #164
+* 2025-01-21 [1f536ba] [bug] fix windows -N error
+* 2025-01-21 [aeca212] [cmake] update cmake to add -N support
+* 2025-01-21 [134ab82] [ci] fix windows msvc compilation error
+* 2025-01-21 [12071fd] [feat] add -N/--net to download simulations from NeuroJSON.io, add -Q
+* 2025-01-10 [cf10d5f] [pmcx] Parse issavedet field of the cfg dict as an int instead of a bool.
+* 2025-01-03 [8f433e9] [feat] allow plotting logical arrays in mcxplotvol
+* 2024-12-15 [eafea84] [feat] polish and miss_hit format of `demo_mcxlab_replay_traj.m`
+* 2024-12-15 [82e100b] [feat] add missing demo_mcxlab_replay_traj.m script
+* 2024-12-11 [22bf12a] [bug] fix mcxlab castlist
+* 2024-12-04 [86dcba9] [bug] force most scalar inputs to be double to avoid incorrect typecasting
+* 2024-11-25 [4b7020d] [ci] upgrade pmcx macos build to macos-13
+* 2024-11-25 [51e9970] [bug] fix mcx crash when replay is requested without seed file
+* 2024-11-22 [e8907db] [ci] include vcomp140.dll in windows binary
+* 2024-11-22 [2902119] [ci] further test vcomp140
+* 2024-11-22 [c3d413d] [ci] find vcomp140.dll
+* 2024-11-21 [4f1335c] [ci] print vcomp1xx.dll path
+* 2024-11-21 [d033755] [bug] apply patch in #235 to pmcx, bump pmcx to v0.3.6
+* 2024-11-21 [744c088] [bug] correctly return integer based w0 and detid in pattern3d
+* 2024-11-21 [dcf11c4] [bug] enable photon sharing for pattern3d source
+* 2024-11-18 [bd62362] [bug] fix mcxlab crash with >2^31-1 voxels, fix #235, revert #164
+* 2024-11-13 [188338b] [feat] negative detector radius captures but does not save photons
+* 2024-11-12 [dfc704f] [ci] reduce macos binary size using strip
+* 2024-11-12 [7d33c14] [ci] disable octave download on macos
+* 2024-11-12 [43e7416] [ci] download octave app with -L
+* 2024-11-12 [c978a3e] [ci] use octave app on macos
+* 2024-11-12 [30cc3cb] [ci] upload macos mcx package
+* 2024-11-12 [24d1257] [ci] downgrade download-artifact as it does not support multiple jobs
+* 2024-11-10 [f17dcc6] [bug] fix mcxlab crash when using issave2pt=0 with photonsharing
+* 2024-11-09 [8c69db3] [ci] update setup.py for pmcx
+* 2024-11-09 [fd83829] [ci] disable CMAKE_RANLIB
+* 2024-11-09 [dbada19] [ci] debug ranlib
+* 2024-11-09 [208c31d] [ci] use verbose option to debug macos build flags
+* 2024-11-09 [4e0c672] [bug] fix maskdet 1cube test
+* 2024-11-08 [ee5be15] [feat] make onecube benchmark maskdet work, fix --dumpmask
+* 2024-11-08 [f2d3bc4] [feat] support 1x1x1 volume, add onecube/twocube benchmarks, det not working
+* 2024-11-06 [eaafb0b] [feat] disabling issaveref if issave2pt is false
+* 2024-10-09 [0411ec6] Fix data ordering in traj.iquv
+* 2024-09-25 [8c0cfec] [pmcx] bump up pmcx version to 0.3.5 after fixing #233
+* 2024-09-25 [58dec12] [bug] angleinvcdf and invcdf are not read in full in pmcx, fix #233
+* 2024-09-14 [7b8ecb6] [ci] restore macos-12
+* 2024-09-13 [6fbf3db] [bug] fix the potential typo in Custo et al for CSF mua, fix #232
+* 2024-09-03 [c9456a7] [ci] fix action alert related to download-artifact
+* 2024-08-22 [70f95ba] [pmcx] fix CI error for pmcx
+* 2024-08-22 [82fb8f1] [feat] allow mcxlab and pmcx to use cfg.flog to control log printing
+* 2024-08-18 [17e347c] [bug] fix lzma memory leakage, NeuroJSON/zmat#11, lloyd/easylzma#4
+* 2024-08-06 [5cc92ab] [bug] avoid using the same RNG seed when -E -1 on multiple GPUs
+* 2024-08-06 [3c480b6] [doc] clarify the default RNG seed (1648335518) in html doc
+* 2024-07-22 [d8959eb] [ci] update macos-11 to 12 as 11 no longer works
+* 2024-07-14 [b17cb1a] [bug] mcxplotshapes patch by ChenJY-L to plot Box, close #227
+* 2024-07-14 [78716e4] [bug] avoid overwriting mua/mus when one is nan, fix #224, fix #225
+* 2024-07-04 [80b5794] [bug] read g and n when mua or mus=nan in asgn_float, close #225, close #224
+* 2024-06-22 [f959c71] [bug] store reflection position in trajectory
+* 2024-06-19 [4ff5b60] [bug] print large photon numbers without overflow
+* 2024-06-11 [d66a0a3] [test] sync test script between mcx and mcxcl after fangq/mcxcl#57
+* 2024-06-11 [1e7d0f1] [bug] reset replay.tof when tof exceeds tend, like fangq/mcxcl#57
+* 2024-06-07 [026eebf] [bug] ensure to clear shared mem buffer regardless of weight, #222
+* 2024-06-06 [b41c915] [bug] fix skewed nscat distribution, fix #222
+* 2024-06-05 [654dff1] [bug] fix outputtype error in json2mcx, reformat with miss_hit
+* 2024-06-05 [25b0268] [feat] export iquv in trajectory data when cfg.istrajstokes=1
+* 2024-05-18 [0a76d17] [bug] fix mcxsvmc flipped normal direction in octave, fix #221
+* 2024-05-18 [2f42524] [ci] downgrade matlab from v2024a to v2022a
+* 2024-05-14 [56aa355] [doc] update jsonlan and neurojson toolbox download links
+* 2024-04-25 [ea67ea9] [bug] avoid double-base64-encoding when -Z 2 is used, fix #219
+* 2024-03-28 [3b7e11c] [doc] fix incorrect default value for gscatter
+* 2024-03-25 [b4706ae] [release] update winget mcxstudio package
+* 2024-03-18 [2953735] [doc] add documentation on the srcid output in detp and traj
+* 2024-03-18 [94961f3] [bug] return source ID in multi-source simulation, fix #217
+* 2024-03-17 [3c3d755] [release] post v2024.2 release action, close #216
+* 2024-03-17 [7902a4e] [mcxcloud] update docker image to v2024.2
+* 2024-03-15 [08bfe11] [feat] support `_ArrayData_` in Shapes volume input
 
 
 Introduction
 ---------------
 
-Monte Carlo eXtreme (MCX) is a fast photon transport simulation software for 3D 
-heterogeneous turbid media. By taking advantage of the massively parallel 
-threads and extremely low memory latency in a modern graphics processing unit 
-(GPU), MCX is capable of performing Monte Carlo (MC) photon simulations at a 
-blazing speed, typically hundreds to a thousand times faster than a fully 
-optimized CPU-based MC implementation.
+Monte Carlo eXtreme (MCX) is a fast physically-accurate photon simulation 
+software for 3D heterogeneous complex media. By taking advantage of 
+the massively parallel threads and extremely low memory latency in a 
+modern graphics processing unit (GPU), this program is able to perform Monte 
+Carlo (MC) simulations at a blazing speed, typically hundreds to
+a thousand times faster than a single-threaded CPU-based MC implementation.
+
+MCX is written in C and NVIDIA CUDA. It only be executed on NVIDIA GPUs.
+If you want to run hardware-accelerated MCX simulations on AMD/Intel GPUs
+or CPUs, please download MCX-CL (MCX for OpenCL), which is written in OpenCL.
+MCX and MCX-CL are highly compatible.
+
+Due to the nature of the underlying MC algorithms, MCX and MCX-CL are
+ray-tracing/ray-casting software under-the-hood. Compared to commonly
+seen ray-tracing libraries used in computer graphics or gaming
+engines, MCX-CL and MCX have many unique characteristics. The most
+important difference is that MCX/MCX-CL are rigorously based on physical
+laws. They are numerical solvers to the underlying radiative transfer equation
+(RTE) and their solutions have been validated across many publications
+using optical instruments and experimental measurements. In comparison,
+most graphics-oriented ray-tracers have to make many approximations in
+order to achieve fast rendering, enable to provide quantitatively accurate
+light simulation results. Because of this, MCX/MCX-CL have been extensively
+used by biophotonics research communities to obtain reference solutions and
+guide the development of novel medical imaging systems or clinical
+applications. Additionally, MCX/MCX-CL are volumetric ray-tracers; they
+traverse photon-rays throughout complex 3-D domains and computes physically
+meaningful quantities such as spatially resolved fluence, flux, diffuse
+reflectance/transmittance, energy deposition, partial pathlengths,
+among many others. In contrast, most graphics ray-tracing engines
+only trace the RGB color of a ray and render it on a flat 2-D screen.
+In other words, MCX/MCX-CL gives physically accurate 3-D light distributions
+while graphics ray-tracers focus on 2-D rendering of a scene at the camera.
+Nonetheless, they share many similarities, such as ray-marching computation,
+GPU acceleration, scattering/absorption handling etc.
 
 The algorithm of this software is detailed in the References 
 [Fang2009,Yu2018,Yan2020]. A short summary of the main features includes:
@@ -390,15 +213,16 @@ The algorithm of this software is detailed in the References
 -   native Matlab/Octave support for high usability
 -   flexible JSON interface for future extensions
 -   multi-GPU support
+-   advanced features: photon-replay, photon-sharing, and more
 
 This software can be used on Windows, Linux and Mac OS. MCX is written in C/CUDA
-and requires an NVIDIA GPU (support for AMD/Intel CPUs/GPUs via ROCm is still
+and requires NVIDIA GPUs (support for AMD/Intel CPUs/GPUs via ROCm is still
 under development). A more portable OpenCL implementation of MCX, i.e. MCXCL, 
 was announced on July, 2012 and supports almost all NVIDIA/AMD/Intel CPU and GPU 
 models. If your hardware does not support CUDA, please download MCXCL from the 
 below URL:
 
-http://mcx.space/wiki/index.cgi?Learn#mcxcl
+https://mcx.space/wiki/index.cgi?Learn#mcxcl
 
 
 Requirement and Installation
@@ -407,7 +231,7 @@ Requirement and Installation
 Please read this section carefully. The majority of failures using MCX were 
 found related to incorrect installation of NVIDIA GPU driver.
 
-Please browse <http://mcx.space/#documentation> for step-by-step instructions.
+Please browse <https://mcx.space/#documentation> for step-by-step instructions.
 
 For MCX-CUDA, the requirements for using this software include
 
@@ -416,23 +240,36 @@ For MCX-CUDA, the requirements for using this software include
 
 You must make sure that your NVIDIA graphics driver was installed properly.
 A list of CUDA capable cards can be found at [2]. The oldest 
-graphics card that MCX supports is the Fermi series (circa 2010).
+GPU architecture that MCX source code can be compiled is Fermi (`sm_20`).
 Using the latest NVIDIA card is expected to produce the best
-speed. You must have a fermi (GTX 4xx) or newer 
-(5xx/6xx/7xx/9xx/10xx/20xx/30xx series) graphics card. The default release 
-of MCX supports atomic operations and photon detection. 
+speed. The officially released binaries (including mex files and `pmcx` modules)
+can run on NVIDIA GPUs as old as Kepler (GTX-730, `sm_35`). All MCX binaries
+can run directly on future generations of NVIDIA GPUs without needing to
+be recompiled, therefore forward-compatible.
+
 In the below webpage, we summarized the speed differences
 between different generations of NVIDIA GPUs
 
-http://mcx.space/gpubench/
+https://mcx.space/gpubench/
 
 For simulations with large volumes, sufficient graphics memory is also required 
 to perform the simulation. The minimum amount of graphics memory required for a 
 MC simulation is Nx\*Ny\*Nz bytes for the input tissue data plus 
-Nx\*Ny\*Nz\*Ng\*4 bytes for the output flux/fluence data - where Nx,Ny,Nz are 
+Nx\*Ny\*Nz\*Ng\*4\*2 bytes for the output flux/fluence data - where Nx,Ny,Nz are 
 the dimensions of the tissue volume, Ng is the number of concurrent time gates, 
-4 is the size of a single-precision floating-point number. MCX does not require 
+4 is the size of a single-precision floating-point number, 2 is for the extra memory
+needed to ensure output accuracy (https://github.com/fangq/mcx/issues/41). MCX does not require 
 double-precision support in your hardware.
+
+MCX stores optical properties and detector positions in the constant memory.
+Usually, NVIDIA GPUs provides about 64 kB constant memory. As a result, we can only
+the total number of optical properties plus the number of detectors can not
+exceed 4000 (4000 * 4 * 4 = 64 k).
+
+In addition, MCX stores detected photon data inside the shared memory, which also ranges
+between 42 kB to 100 kB per stream processor across different GPU generations. 
+If your domain contains many medium types, it is possible that the allocation of
+the shared memory can exceed the limit. You will also receive an "out of memory" error.
 
 To install MCX, you need to download the binary executable compiled for your 
 computer architecture (32 or 64bit) and platform, extract the package and run 
@@ -456,7 +293,7 @@ you will get a CUDA error: “unspecified error”.
 
 Please see the below link for details
 
-http://mcx.space/wiki/index.cgi?Doc/FAQ#I_am_getting_a_kernel_launch_timed_out_error_what_is_that
+https://mcx.space/wiki/index.cgi?Doc/FAQ#I_am_getting_a_kernel_launch_timed_out_error_what_is_that
 
 If you use Linux, you may enable Intel integrated GPU (iGPU) for display while
 leaving your NVIDIA GPU dedicated for computing using `nvidia-prime`, see
@@ -466,6 +303,48 @@ https://forums.developer.nvidia.com/t/solved-run-cuda-on-dedicated-nvidia-gpu-wh
 or choose one of the 4 other approaches in this blog post
 
 https://nvidia.custhelp.com/app/answers/detail/a_id/3029/~/using-cuda-and-x
+
+We noticed that running Ubuntu Linux 22.04 with a 6.5 kernel on a laptop with 
+a hybrid GPU with an Intel iGPU and an NVIDIA GPU, you must configure the
+laptop to use the NVIDIA GPU as the primary GPU by choosing "NVIDIA (Performance Mode)"
+in the PRIME Profiles section of **NVIDIA X Server Settings**. You can also run 
+
+```
+sudo prime-select nvidia
+```
+
+to achieve the same goal. Otherwise, the simulation may hang your system
+after running for a few seconds. A hybrid GPU laptop combing an NVIDIA GPU 
+with an AMD iGPU does not seem to have this issue if using Linux.
+
+In addition, NVIDIA drirver (520 or newer) has a known glitch running on Linux kernel
+6.x (such as those in Ubuntu 22.04). See
+
+https://forums.developer.nvidia.com/t/dev-nvidia-uvm-io-error-on-ubuntu-22-04-520-to-535-driver-versions/262153
+
+When the laptop is in the "performance" mode and wakes up from suspension, MCX or any
+CUDA program fails to run with an error
+
+
+```
+MCX ERROR(-999):unknown error in unit mcx_core.cu:2523
+```
+
+This is because the kernel module `nvida-uvm` fails to be reloaded after suspension.
+If you had an open MATLAB session, you must close MATLAB first, and
+run the below commands (if MATLAB is open, you will see `rmmod: ERROR: Module nvidia_uvm is in use`)
+
+```
+sudo rmmod /dev/nvidia-uvm
+sudo modprobe nvidia-uvm
+```
+
+after the above command, MCX should be able to run again.
+
+New generations of Mac computers no longer support NVIDIA or AMD GPUs. you will
+have to use the OpenCL version of MCX, MCX-CL by downloading it from
+
+https://mcx.space/wiki/?Learn#mcxcl
 
 
 Running Simulations
@@ -480,27 +359,37 @@ supported parameters, as shown below:
 ```
 ###############################################################################
 #                      Monte Carlo eXtreme (MCX) -- CUDA                      #
-#          Copyright (c) 2009-2022 Qianqian Fang <q.fang at neu.edu>          #
-#                             http://mcx.space/                               #
+#          Copyright (c) 2009-2025 Qianqian Fang <q.fang at neu.edu>          #
+#                https://mcx.space/  &  https://neurojson.io                  #
 #                                                                             #
 # Computational Optics & Translational Imaging (COTI) Lab- http://fanglab.org #
 #   Department of Bioengineering, Northeastern University, Boston, MA, USA    #
 ###############################################################################
 #    The MCX Project is funded by the NIH/NIGMS under grant R01-GM114365      #
 ###############################################################################
-$Rev::dc4295$v2022.10$Date::Qianqian Fang          $ by $Author::Qianqian Fang$
+#  Open-source codes and reusable scientific data are essential for research, #
+# MCX proudly developed human-readable JSON-based data formats for easy reuse.#
+#                                                                             #
+#Please visit our free scientific data sharing portal at https://neurojson.io #
+# and consider sharing your public datasets in standardized JSON/JData format #
+###############################################################################
+$Rev::9c446e $ v2025 $Date::2025-01-23 17:18:06 -05$ by $Author::Qianqian Fang$
 ###############################################################################
 
 usage: mcx <param1> <param2> ...
 where possible parameters include (the first value in [*|*] is the default)
 
 == Required option ==
- -f config     (--input)       read an input file in .json or .inp format
-                               if the string starts with '{', it is parsed as
-			       an inline JSON input file
+ -f config     (--input)       read an input file in the .json format,if config
+                               string starts with '{',it is parsed as an inline
+                               JSON input file; if -f is followed by nothing or
+                               a single '-', it reads input from stdin via pipe
       or
- --bench ['cube60','skinvessel',..] run a buint-in benchmark specified by name
-                               run --bench without parameter to get a list
+ -Q/--bench [cube60, skinvessel,...] run a buint-in benchmark specified by name
+                               run -Q without parameter to get a list
+ -N benchmark  (--net)         get benchmark from NeuroJSON.io, -N only to list
+                               benchmark can be dataset URL,or dbname/benchname
+                               requires 'curl', install from https://curl.se/
 
 == MC options ==
  -n [0|int]    (--photon)      total photon number (exponential form accepted)
@@ -510,24 +399,24 @@ where possible parameters include (the first value in [*|*] is the default)
  -b [1|0]      (--reflect)     1 to reflect photons at ext. boundary;0 to exit
  -B '______'   (--bc)          per-face boundary condition (BC), 6 letters for
     /case insensitive/         bounding box faces at -x,-y,-z,+x,+y,+z axes;
-			       overwrite -b if given. 
-			       each letter can be one of the following:
-			       '_': undefined, fallback to -b
-			       'r': like -b 1, Fresnel reflection BC
-			       'a': like -b 0, total absorption BC
-			       'm': mirror or total reflection BC
-			       'c': cyclic BC, enter from opposite face
+                               overwrite -b if given. 
+                               each letter can be one of the following:
+                               '_': undefined, fallback to -b
+                               'r': like -b 1, Fresnel reflection BC
+                               'a': like -b 0, total absorption BC
+                               'm': mirror or total reflection BC
+                               'c': cyclic BC, enter from opposite face
 
-			       if input contains additional 6 letters,
-			       the 7th-12th letters can be:
-			       '0': do not use this face to detect photon, or
-			       '1': use this face for photon detection (-d 1)
-			       the order of the faces for letters 7-12 is 
-			       the same as the first 6 letters
-			       eg: --bc ______010 saves photons exiting at y=0
+                               if input contains additional 6 letters,
+                               the 7th-12th letters can be:
+                               '0': do not use this face to detect photon, or
+                               '1': use this face for photon detection (-d 1)
+                               the order of the faces for letters 7-12 is 
+                               the same as the first 6 letters
+                               eg: --bc ______010 saves photons exiting at y=0
  -u [1.|float] (--unitinmm)    defines the length unit for the grid edge
  -U [1|0]      (--normalize)   1 to normalize flux to unitary; 0 save raw
- -E [0|int|mch](--seed)        set random-number-generator seed, -1 to generate
+ -E [1648335518|int|mch](--seed) set rand-number-generator seed, -1 to generate
                                if an mch file is followed, MCX "replays" 
                                the detected photon; the replay mode can be used
                                to calculate the mua/mus Jacobian matrices
@@ -535,8 +424,8 @@ where possible parameters include (the first value in [*|*] is the default)
  -k [1|0]      (--voidtime)    when src is outside, 1 enables timer inside void
  -Y [0|int]    (--replaydet)   replay only the detected photons from a given 
                                detector (det ID starts from 1), used with -E 
-			       if 0, replay all detectors and sum all Jacobians
-			       if -1, replay all detectors and save separately
+                               if 0, replay all detectors and sum all Jacobians
+                               if -1, replay all detectors and save separately
  -V [0|1]      (--specular)    1 source located in the background,0 inside mesh
  -e [0.|float] (--minenergy)   minimum energy level to trigger Russian roulette
  -g [1|int]    (--gategroup)   number of maximum time gates per run
@@ -557,108 +446,117 @@ where possible parameters include (the first value in [*|*] is the default)
 == Input options ==
  -P '{...}'    (--shapes)      a JSON string for additional shapes in the grid.
                                only the root object named 'Shapes' is parsed 
-			       and added to the existing domain defined via -f 
-			       or --bench
+                               and added to the existing domain defined via -f 
+                               or --bench
  -j '{...}'    (--json)        a JSON string for modifying all input settings.
                                this input can be used to modify all existing 
-			       settings defined by -f or --bench
+                               settings defined by -f or --bench
  -K [1|int|str](--mediabyte)   volume data format, use either a number or a str
        voxel binary data layouts are shown in {...}, where [] for byte,[i:]
        for 4-byte integer, [s:] for 2-byte short, [h:] for 2-byte half float,
        [f:] for 4-byte float; on Little-Endian systems, least-sig. bit on left
                                1 or byte: 0-128 tissue labels
-			       2 or short: 0-65535 (max to 4000) tissue labels
-			       4 or integer: integer tissue labels 
-			      97 or svmc: split-voxel MC 8-byte format
-			        {[n.z][n.y][n.x][p.z][p.y][p.x][upper][lower]}
-			      98 or mixlabel: label1+label2+label1_percentage
-			        {[label1][label2][s:0-65535 label1 percentage]}
-			      99 or labelplus: 32bit composite voxel format
-			        {[h:mua/mus/g/n][s:(B15-16:0/1/2/3)(label)]}
+                               2 or short: 0-65535 (max to 4000) tissue labels
+                               4 or integer: integer tissue labels 
+                              96 or asgn_float: mua/mus/g/n 4xfloat format
+                                {[f:mua][f:mus][f:g][f:n]}
+                              97 or svmc: split-voxel MC 8-byte format
+                                {[n.z][n.y][n.x][p.z][p.y][p.x][upper][lower]}
+                              98 or mixlabel: label1+label2+label1_percentage
+                                {[label1][label2][s:0-32767 label1 percentage]}
+                              99 or labelplus: 32bit composite voxel format
+                                {[h:mua/mus/g/n][s:(B15-16:0/1/2/3)(label)]}
                              100 or muamus_float: 2x 32bit floats for mua/mus
-			        {[f:mua][f:mus]}; g/n from medium type 1
+                                {[f:mua][f:mus]}; g/n from medium type 1
                              101 or mua_float: 1 float per voxel for mua
-			        {[f:mua]}; mus/g/n from medium type 1
-			     102 or muamus_half: 2x 16bit float for mua/mus
-			        {[h:mua][h:mus]}; g/n from medium type 1
-			     103 or asgn_byte: 4x byte gray-levels for mua/s/g/n
-			        {[mua][mus][g][n]}; 0-255 mixing prop types 1&2
-			     104 or muamus_short: 2x short gray-levels for mua/s
-			        {[s:mua][s:mus]}; 0-65535 mixing prop types 1&2
+                                {[f:mua]}; mus/g/n from medium type 1
+                             102 or muamus_half: 2x 16bit float for mua/mus
+                                {[h:mua][h:mus]}; g/n from medium type 1
+                             103 or asgn_byte: 4x byte gray-levels for mua/s/g/n
+                                {[mua][mus][g][n]}; 0-255 mixing prop types 1&2
+                             104 or muamus_short: 2x short gray-levels for mua/s
+                                {[s:mua][s:mus]}; 0-65535 mixing prop types 1&2
+       when formats 99 or 102 is used, the mua/mus values in the input volume
+       binary data must be pre-scaled by voxel size (unitinmm) if it is not 1.
+       pre-scaling is not needed when using these 2 formats in mcxlab/pmcx
  -a [0|1]      (--array)       1 for C array (row-major); 0 for Matlab array
 
 == Output options ==
  -s sessionid  (--session)     a string to label all output file names
- -O [X|XFEJPMR] (--outputtype) X - output flux, F - fluence, E - energy deposit
+ -O [X|XFEJPMRL](--outputtype) X - output flux, F - fluence, E - energy deposit
     /case insensitive/         J - Jacobian (replay mode),   P - scattering, 
-			       event counts at each voxel (replay mode only)
+                               event counts at each voxel (replay mode only)
                                M - momentum transfer; R - RF/FD Jacobian
- -d [1|0]      (--savedet)     1 to save photon info at detectors; 0 not save
+                               L - total pathlength
+ -d [1|0-3]    (--savedet)     1 to save photon info at detectors; 0 not save
+                               2 reserved, 3 terminate simulation when detected
+                               photon buffer is filled
  -w [DP|DSPMXVW](--savedetflag)a string controlling detected photon data fields
     /case insensitive/         1 D  output detector ID (1)
                                2 S  output partial scat. even counts (#media)
                                4 P  output partial path-lengths (#media)
-			       8 M  output momentum transfer (#media)
-			      16 X  output exit position (3)
-			      32 V  output exit direction (3)
-			      64 W  output initial weight (1)
+                               8 M  output momentum transfer (#media)
+                              16 X  output exit position (3)
+                              32 V  output exit direction (3)
+                              64 W  output initial weight (1)
       combine multiple items by using a string, or add selected numbers together
       by default, mcx only saves detector ID and partial-path data
  -x [0|1]      (--saveexit)    1 to save photon exit positions and directions
                                setting -x to 1 also implies setting '-d' to 1.
-			       same as adding 'XV' to -w.
+                               same as adding 'XV' to -w.
  -X [0|1]      (--saveref)     1 to save diffuse reflectance at the air-voxels
                                right outside of the domain; if non-zero voxels
-			       appear at the boundary, pad 0s before using -X
+                               appear at the boundary, pad 0s before using -X
  -m [0|1]      (--momentum)    1 to save photon momentum transfer,0 not to save.
                                same as adding 'M' to the -w flag
  -q [0|1]      (--saveseed)    1 to save photon RNG seed for replay; 0 not save
  -M [0|1]      (--dumpmask)    1 to dump detector volume masks; 0 do not save
  -H [1000000] (--maxdetphoton) max number of detected photons
  -S [1|0]      (--save2pt)     1 to save the flux field; 0 do not save
- -F [mc2|...] (--outputformat) fluence data output format:
+ -F [jnii|...](--outputformat) fluence data output format:
                                mc2 - MCX mc2 format (binary 32bit float)
-                               jnii - JNIfTI format (http://openjdata.org)
-                               bnii - Binary JNIfTI (http://openjdata.org)
+                               jnii - JNIfTI format (https://neurojson.org)
+                               bnii - Binary JNIfTI (https://neurojson.org)
                                nii - NIfTI format
                                hdr - Analyze 7.5 hdr/img format
                                tx3 - GL texture data for rendering (GL_RGBA32F)
-	the bnii/jnii formats support compression (-Z) and generate small files
-	load jnii (JSON) and bnii (UBJSON) files using below lightweight libs:
-	  MATLAB/Octave: JNIfTI toolbox   https://github.com/fangq/jnifti, 
-	  MATLAB/Octave: JSONLab toolbox  https://github.com/fangq/jsonlab, 
-	  Python:        PyJData:         https://pypi.org/project/jdata
-	  JavaScript:    JSData:          https://github.com/fangq/jsdata
+    the bnii/jnii formats support compression (-Z) and generate small files
+    load jnii (JSON) and bnii (UBJSON) files using below lightweight libs:
+      MATLAB/Octave: JNIfTI toolbox   https://neurojson.org/download/jnifty
+      MATLAB/Octave: JSONLab toolbox  https://neurojson.org/download/jsonlab
+      Python:        PyJData:         https://neurojson.org/download/pyjdata
+      JavaScript:    JSData:          https://neurojson.org/download/jsdata
  -Z [zlib|...] (--zip)         set compression method if -F jnii or --dumpjson
                                is used (when saving data to JSON/JNIfTI format)
-			       0 zlib: zip format (moderate compression,fast) 
-			       1 gzip: gzip format (compatible with *.gz)
-			       2 base64: base64 encoding with no compression
-			       3 lzip: lzip format (high compression,very slow)
-			       4 lzma: lzma format (high compression,very slow)
-			       5 lz4: LZ4 format (low compression,extrem. fast)
-			       6 lz4hc: LZ4HC format (moderate compression,fast)
+                               0 zlib: zip format (moderate compression,fast) 
+                               1 gzip: gzip format (compatible with *.gz)
+                               2 base64: base64 encoding with no compression
+                               3 lzip: lzip format (high compression,very slow)
+                               4 lzma: lzma format (high compression,very slow)
+                               5 lz4: LZ4 format (low compression,extrem. fast)
+                               6 lz4hc: LZ4HC format (moderate compression,fast)
  --dumpjson [-,0,1,'file.json']  export all settings, including volume data using
-                               JSON/JData (http://openjdata.org) format for 
-			       easy sharing; can be reused using -f
-			       if followed by nothing or '-', mcx will print
-			       the JSON to the console; write to a file if file
-			       name is specified; by default, prints settings
-			       after pre-processing; '--dumpjson 2' prints 
-			       raw inputs before pre-processing
+                               JSON/JData (https://neurojson.org) format for
+                               easy sharing; can be reused using -f
+                               if followed by nothing or '-', mcx will print
+                               the JSON to the console; write to a file if file
+                               name is specified; by default, prints settings
+                               after pre-processing; '--dumpjson 2' prints 
+                               raw inputs before pre-processing
 
 == User IO options ==
  -h            (--help)        print this message
  -v            (--version)     print MCX revision number
  -l            (--log)         print messages to a log file instead
- -i 	       (--interactive) interactive mode
+ -i            (--interactive) interactive mode
 
 == Debug options ==
  -D [0|int]    (--debug)       print debug information (you can use an integer
   or                           or a string by combining the following flags)
- -D [''|RMP]                   1 R  debug RNG
+ -D [''|RMPT]                  1 R  debug RNG
     /case insensitive/         2 M  store photon trajectory info
                                4 P  print progress bar
+                               8 T  save trajectory data only, disable flux/detp
       combine multiple items by using a string, or add selected numbers together
 
 == Additional options ==
@@ -666,7 +564,10 @@ where possible parameters include (the first value in [*|*] is the default)
  --gscatter     [1e9|int]      after a photon completes the specified number of
                                scattering events, mcx then ignores anisotropy g
                                and only performs isotropic scattering for speed
+ --srcid  [0|-1,0,1,2,..]      -1 simulate multi-source separately;0 all sources
+                               together; a positive integer runs a single source
  --internalsrc  [0|1]          set to 1 to skip entry search to speedup launch
+ --trajstokes   [0|1]          set to 1 to save Stokes IQUV in trajectory data
  --maxvoidstep  [1000|int]     maximum distance (in voxel unit) of a photon that
                                can travel before entering the domain, if 
                                launched outside (i.e. a widefield source)
@@ -675,18 +576,26 @@ where possible parameters include (the first value in [*|*] is the default)
                                stored (default: 1e7)
 
 == Example ==
-example: (list built-in benchmarks)
-       mcx --bench
-or (list supported GPUs on the system)
+example: (list built-in benchmarks: -Q/--bench)
+       mcx -Q
+or (list supported GPUs on the system: -L/--listgpu)
        mcx -L
 or (use multiple devices - 1st,2nd and 4th GPUs - together with equal load)
-       mcx --bench cube60b -n 1e7 -G 1101 -W 10,10,10
+       mcx -Q cube60b -n 1e7 -G 1101 -W 10,10,10
 or (use inline domain definition)
        mcx -f input.json -P '{"Shapes":[{"ZLayers":[[1,10,1],[11,30,2],[31,60,3]]}]}'
 or (use inline json setting modifier)
        mcx -f input.json -j '{"Optode":{"Source":{"Type":"isotropic"}}}'
 or (dump simulation in a single json file)
-       mcx --bench cube60planar --dumpjson
+       mcx -Q cube60planar --dumpjson
+or (use -N/--net to browse community-contributed mcx simulations at https://neurojson.io)
+       mcx -N
+or (run user-shared mcx simulations, see full list at https://neurojson.org/db/mcx)
+       mcx -N aircube60
+or (use -f - to read piped input file modified by shell text processing utilities)
+       mcx -Q cube60 --dumpjson | sed -e 's/pencil/cone/g' | mcx -f -
+or (download/modify simulations from NeuroJSON.io and run with mcx -f)
+       curl -s -X GET https://neurojson.io:7777/mcx/aircube60 | jq '.Forward.Dt = 1e-9' | mcx -f
 ```
 
 To further illustrate the command line options, below one can find a sample command
@@ -1009,6 +918,9 @@ Several data formats can be used to store the 3D/4D/5D volumetric output.
 
 #### mc2 files
 
+Starting in MCX v2023, `.mc2` files are no longer the default output format for
+MCX binary. Instead, JSON based JNIfTI (`.jnii`) files are used.
+
 The `.mc2` format is simply a binary dump of the entire volumetric data output,
 consisted of the voxel values (single-precision floating-point) of all voxels and
 time gates. The file contains a continuous buffer of a single-precision (4-byte) 
@@ -1034,14 +946,17 @@ A .nii output file can be generated by using `-F nii` in the command line.
 The .nii file is widely supported among data processing platforms, including
 MATLAB and Python. For example
 - niftiread.m/niftiwrite in MATLAB Image Processing Toolbox
-- JNIfTI toolbox by Qianqian Fang (https://github.com/fangq/jnifti/tree/master/lib/matlab)
+- JNIfTI toolbox by Qianqian Fang (https://github.com/NeuroJSON/jnifti/tree/master/lib/matlab)
 - PyNIfTI for Python http://niftilib.sourceforge.net/pynifti/intro.html
 
 #### jnii files
 
+Starting in MCX v2023, JSON based JNIfTI (`.jnii`) files are used as the default
+volumetric data output format.
+
 The JNIfTI format represents the next-generation scientific data storage 
-and exchange standard and is part of the OpenJData initiative (http://openjdata.org)
-led by the MCX author Dr. Qianqian Fang. The OpenJData project aims at developing
+and exchange standard and is part of the US NIH-funded NeuroJSON initiative (https://neurojson.org)
+led by the MCX author Dr. Qianqian Fang. The NeuroJSON project aims at developing
 easy-to-parse, human-readable and easy-to-reuse data storage formats based on
 the ubiquitously supported JSON/binary JSON formats and portable JData data annotation
 keywords. In short, .jnii file is simply a JSON file with capability of storing 
@@ -1049,21 +964,21 @@ binary strongly-typed data with internal compression and built in metadata.
 
 The format standard (Draft 1) of the JNIfTI file can be found at
 
-https://github.com/fangq/jnifti
+https://github.com/NeuroJSON/jnifti
 
 A .jnii output file can be generated by using `-F jnii` in the command line.
 
 The .jnii file can be potentially read in nearly all programming languages 
 because it is 100% comaptible to the JSON format. However, to properly decode
 the ND array with built-in compression, one should call JData compatible
-libraries, which can be found at http://openjdata.org/wiki
+libraries, which can be found at https://neurojson.org/#software
 
 Specifically, to parse/save .jnii files in MATLAB, you should use
-- JSONLab for MATLAB (https://github.com/fangq/jsonlab) or install `octave-jsonlab` on Fedora/Debian/Ubuntu
-- `jsonencode/jsondecode` in MATLAB + `jdataencode/jdatadecode` from JSONLab (https://github.com/fangq/jsonlab)
+- JSONLab for MATLAB (https://neurojson.org/download/jsonlab) or install `octave-jsonlab` on Fedora/Debian/Ubuntu
+- `jsonencode/jsondecode` in MATLAB + `jdataencode/jdatadecode` from JSONLab (https://neurojson.org/download/jsonlab)
 
 To parse/save .jnii files in Python, you should use
-- PyJData module (https://pypi.org/project/jdata/) or install `python3-jdata` on Debian/Ubuntu
+- PyJData module (https://neurojson.org/download/pyjdata) or install `python3-jdata` on Debian/Ubuntu
 
 In Python, the volumetric data is loaded as a `dict` object where `data['NIFTIData']` 
 is a NumPy `ndarray` object storing the volumetric data.
@@ -1071,11 +986,11 @@ is a NumPy `ndarray` object storing the volumetric data.
 
 #### bnii files
 
-The binary JNIfTI file is also part of the JNIfTI specification and the OpenJData
+The binary JNIfTI file is also part of the JNIfTI specification and the NeuroJSON
 project. In comparison to text-based JSON format, .bnii files can be much smaller
 and faster to parse. The .bnii format is also defined in the BJData specification
 
-https://github.com/fangq/bjdata
+https://github.com/NeuroJSON/bjdata
 
 and is the binary interface to .jnii. A .bnii output file can be generated by 
 using `-F bnii` in the command line.
@@ -1083,14 +998,14 @@ using `-F bnii` in the command line.
 The .bnii file can be potentially read in nearly all programming languages 
 because it was based on UBJSON (Universal Binary JSON). However, to properly decode
 the ND array with built-in compression, one should call JData compatible
-libraries, which can be found at http://openjdata.org/wiki
+libraries, which can be found at https://neurojson.org/#software
 
 Specifically, to parse/save .jnii files in MATLAB, you should use one of
-- JSONLab for MATLAB (https://github.com/fangq/jsonlab) or install `octave-jsonlab` on Fedora/Debian/Ubuntu
-- `jsonencode/jsondecode` in MATLAB + `jdataencode/jdatadecode` from JSONLab (https://github.com/fangq/jsonlab)
+- JSONLab for MATLAB (https://neurojson.org/download/jsonlab) or install `octave-jsonlab` on Fedora/Debian/Ubuntu
+- `jsonencode/jsondecode` in MATLAB + `jdataencode/jdatadecode` from JSONLab (https://neurojson.org/download/jsonlab)
 
 To parse/save .jnii files in Python, you should use
-- PyJData module (https://pypi.org/project/jdata/) or install `python3-jdata` on Debian/Ubuntu
+- PyJData module (https://neurojson.org/download/pyjdata) or install `python3-jdata` on Debian/Ubuntu
 
 In Python, the volumetric data is loaded as a `dict` object where `data['NIFTIData']` 
 is a NumPy `ndarray` object storing the volumetric data.
@@ -1114,7 +1029,7 @@ to adpot the newly implemented JSON/.jdat format for easy data sharing.
 The .mch file contains a 256 byte binary header, followed by a 2-D numerical array
 of dimensions `#savedphoton * #colcount` as recorded in the header.
 ```
- typedef struct MCXHistoryHeader{
+typedef struct MCXHistoryHeader{
 	char magic[4];                 // magic bits= 'M','C','X','H'
 	unsigned int  version;         // version of the mch file format 
 	unsigned int  maxmedia;        // number of media in the simulation 
@@ -1123,14 +1038,15 @@ of dimensions `#savedphoton * #colcount` as recorded in the header.
 	unsigned int  totalphoton;     // how many total photon simulated 
 	unsigned int  detected;        // how many photons are detected (not necessarily all saved) 
 	unsigned int  savedphoton;     // how many detected photons are saved in this file 
-	float unitinmm;                // what is the voxel size of the simulation 
+	float unitinmm;                // what is the voxel size of the simulation
 	unsigned int  seedbyte;        // how many bytes per RNG seed
-        float normalizer;              // what is the normalization factor
+	float normalizer;              // what is the normalization factor
 	int respin;                    // if positive, repeat count so total photon=totalphoton*respin; if negative, total number is processed in respin subset 
 	unsigned int  srcnum;          // number of sources for simultaneous pattern sources 
 	unsigned int  savedetflag;     // number of sources for simultaneous pattern sources 
-	int reserved[2];               // reserved fields for future extension 
- } History;
+    unsigned int  totalsource;     // total source number when multiple sources are defined
+	int reserved[1];               // reserved fields for future extension 
+} History;
 ```
 When the `-q` flag is set to 1, the detected photon initial seeds are also stored
 following the detected photon data, consisting of a 2-D byte array of `#savedphoton * #seedbyte`.
@@ -1146,36 +1062,36 @@ When `-F jnii` is specified, instead of saving the detected photon into the lega
 a .jdat file is written, which is a pure JSON file. This file contains a hierachical data
 record of the following JSON structure
 ````
- {
-   "MCXData": {
+{
+   "MCXData":{
        "Info":{
            "Version":
-	   "MediaNum":
-	   "DetNum":
-	   ...
-	   "Media":{
-	      ...
-	   }
+           "MediaNum":
+           "DetNum":
+           ...
+           "Media":{
+               ...
+           }
        },
        "PhotonData":{
            "detid":
-	   "nscat":
-	   "ppath":
-	   "mom":
-	   "p":
-	   "v":
-	   "w0":
+           "nscat":
+           "ppath":
+           "mom":
+           "p":
+           "v":
+           "w0":
        },
        "Trajectory":{
            "photonid":
-	   "p":
-	   "w0":
+           "p":
+           "w0":
        },
        "Seed":[
            ...
        ]
    }
- }
+}
 ````
 where "Info" is required, and other subfields are optional depends on users' input.
 Each subfield in this file may contain JData 1-D or 2-D array constructs to allow 
@@ -1185,11 +1101,11 @@ Although .jdat and .jnii have different suffix, they are both JSON/JData files a
 can be opened/written by the same JData compatible libraries mentioned above, i.e.
 
 For MATLAB
-- JSONLab for MATLAB (https://github.com/fangq/jsonlab) or install `octave-jsonlab` on Fedora/Debian/Ubuntu
-- `jsonencode/jsondecode` in MATLAB + `jdataencode/jdatadecode` from JSONLab (https://github.com/fangq/jsonlab)
+- JSONLab for MATLAB (https://neurojson.org/download/jsonlab) or install `octave-jsonlab` on Fedora/Debian/Ubuntu
+- `jsonencode/jsondecode` in MATLAB + `jdataencode/jdatadecode` from JSONLab (https://neurojson.org/download/jsonlab)
 
 For Python
-- PyJData module (https://pypi.org/project/jdata/) or install `python3-jdata` on Debian/Ubuntu
+- PyJData module (https://neurojson.org/download/pyjdata) or install `python3-jdata` on Debian/Ubuntu
 
 In Python, the volumetric data is loaded as a `dict` object where `data['MCXData']['PhotonData']` 
 stores the photon data, `data['MCXData']['Trajectory']` stores the trajectory data etc.
@@ -1220,16 +1136,33 @@ seed data and saved as a JSON-compatible .jdat file. The overall structure of th
 Using MCXLAB in MATLAB and Octave
 ------------------------------------
 
-MCXLAB is the native MEX version of MCX for Matlab and GNU Octave. It includes 
+MCXLAB is the native MEX version of MCX for MATLAB and GNU Octave. It includes 
 the entire MCX code in a MEX function which can be called directly inside 
-Matlab or Octave. The input and output files in MCX are replaced by convenient 
+MATLAB or Octave. The input and output files in MCX are replaced by convenient 
 in-memory struct variables in MCXLAB, thus, making it much easier to use and 
-interact. Matlab/Octave also provides convenient plotting and data analysis 
-functions. With MCXLAB, your analysis can be streamlined and speed- up without 
+interact. MATLAB/Octave also provides convenient plotting and data analysis 
+functions. With MCXLAB, your analysis can be streamlined and simplified without 
 involving disk files.
 
-Please read the mcxlab/README.txt file for more details on how to install and 
+Please read the `mcxlab/README.txt` file for more details on how to install and 
 use MCXLAB.
+
+Please also browse this interactive [Jupyter Notebook based MCXLAB tutorial](https://colab.research.google.com/github/fangq/mcx/blob/master/mcxlab/tutorials/mcxlab_getting_started.ipynb)
+to see a suite of examples showing the key functionalities of MCXLAB (using GNU Octave).
+
+
+Using PMCX in Python
+------------------------------------
+
+PMCX is the native binary binding of MCX for Python 3.6 or newer. Similar to
+MCXLAB, PMCX can run GPU-based simulations inside Python environment with
+efficient in-memory inputs and outputs. 
+
+Please read the `pmcx/README.txt` file for more details on how to install and 
+use PMCX.
+
+Please also browse this interactive [Jupyter Notebook based PMCX tutorial](https://colab.research.google.com/github/fangq/mcx/blob/master/pmcx/tutorials/pmcx_getting_started.ipynb)
+to see a suite of examples showing the key functionalities of PMCX.
 
 
 Using MCX Studio GUI
@@ -1394,19 +1327,17 @@ Best practices guide
 To maximize MCX's performance on your hardware, you should follow the best 
 practices guide listed below:
 
-### Use dedicated GPUs
+### Use a middle-range or enthusiastic-grade GPU, use multiple of them if possible
 
-A dedicated GPU is a GPU that is not connected to a monitor. If you use a 
-non-dedicated GPU, any kernel (GPU function) can not run more than a few 
-seconds. This greatly limits the efficiency of MCX. To set up a dedicated GPU, 
-it is suggested to install two graphics cards on your computer, one is set up 
-for displays, the other one is used for GPU computation only. If you have a 
-dual-GPU card, you can also connect one GPU to a single monitor, and use the 
-other GPU for computation (selected by `-G` in mcx). If you have to use a 
-non-dedicated GPU, you can either use the pure command-line mode (for Linux, 
-you need to stop X server), or use the `-r` flag to divide the total 
-simulation into a set of simulations with less photons, so that each simulation 
-only lasts a few seconds.
+MCX is highly scalable, providing linear-speedup as long as you provide the
+GPU cores it can use. As a result, the better the GPU you use, the higher the speed
+you can get. An enthusiastic-grade GPU, such as RTX 4070Ti (~$700), can be 12x
+faster than an low-end laptop RTX 4050 GPU even within the same generation.
+
+MCX can readily take advantage of multiple GPUs if you have it installed. The
+MCX simulation speed scales nearly linearly as the number of GPUs increases.
+So, to maximize MCX performance, get at least a middle-level or high-end consumer
+grade GPU; if you need more speed, throw in more GPUs will cut down the runtime.
 
 ### Launch as many threads as possible
 
@@ -1466,7 +1397,7 @@ open-source projects (with a compatible license).
 ### ZMat data compression unit
 
 - Files: src/zmat/*
-- Copyright: 2019-2020 Qianqian Fang
+- Copyright: 2019-2023 Qianqian Fang
 - URL: https://github.com/fangq/zmat
 - License: GPL version 3 or later, https://github.com/fangq/zmat/blob/master/LICENSE.txt
 
@@ -1538,6 +1469,6 @@ Links:
 - [1] http://developer.nvidia.com/cuda-downloads
 - [2] http://www.nvidia.com/object/cuda_gpus.html
 - [3] http://en.wikipedia.org/wiki/Row-major_order
-- [4] http://iso2mesh.sourceforge.net/cgi-bin/index.cgi?jsonlab
+- [4] https://neurojson.org/jsonlab
 - [5] http://science.jrank.org/pages/60024/particle-fluence.html
 - [6] http://www.opticsinfobase.org/oe/abstract.cfm?uri=oe-17-22-20178

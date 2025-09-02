@@ -2,9 +2,9 @@
 **  \mainpage Monte Carlo eXtreme - GPU accelerated Monte Carlo Photon Migration
 **
 **  \author Qianqian Fang <q.fang at neu.edu>
-**  \copyright Qianqian Fang, 2009-2022
+**  \copyright Qianqian Fang, 2009-2025
 **
-**  \section sref Reference:
+**  \section sref Reference
 **  \li \c (\b Fang2009) Qianqian Fang and David A. Boas,
 **          <a href="http://www.opticsinfobase.org/abstract.cfm?uri=oe-17-22-20178">
 **          "Monte Carlo Simulation of Photon Migration in 3D Turbid Media Accelerated
@@ -17,6 +17,10 @@
 **          based Monte Carlo algorithm for accurate and efficient photon transport
 **          modeling in complex bio-tissues," Biomed. Opt. Express, 11(11)
 **          pp. 6262-6270. https://doi.org/10.1364/BOE.409468
+**
+**  \section sformat Formatting
+**          Please always run "make pretty" inside the \c src folder before each commit.
+**          The above command requires \c astyle to perform automatic formatting.
 **
 **  \section slicense License
 **          GPL v3, see LICENSE.txt for details
@@ -31,6 +35,9 @@
 #ifndef _MCEXTREME_CONSTANT_H
 #define _MCEXTREME_CONSTANT_H
 
+#define MCX_VERSION        "v2025.6"
+#define MCX_VERSION_MAJOR  2
+#define MCX_VERSION_MINOR  8
 
 #define ONE_PI             3.1415926535897932f     /**< pi */
 #define TWO_PI             6.28318530717959f       /**< 2*pi */
@@ -62,9 +69,10 @@
 #define MCX_DEBUG_PROGRESS     4   /**< debug flags: 4 - print progress bar */
 #define MCX_DEBUG_MOVE_ONLY    8   /**< debug flags: 8 - only save photon trajectory data, disable volume and detphoton output */
 
-#define MEDIA_2LABEL_SPLIT    97   /**<  media Format: 64bit:{[byte: lower label][byte: upper label][byte*3: reference point][byte*3: normal vector]} */
-#define MEDIA_2LABEL_MIX      98   /**<  media format: {[int: label1][int: label2][float32: label1 %]} -> 32bit:{[half: label1 %],[byte: label2],[byte: label1]} */
-#define MEDIA_LABEL_HALF      99   /**<  media format: {[float32: 1/2/3/4][float32: type][float32: mua/mus/g/n]} -> 32bit:{[half: mua/mus/g/n][int16: [B15-B16: 0/1/2/3][B1-B14: tissue type]} */
+#define MEDIA_ASGN_F2H        96   /**<  media format: input: float4 {mua,mus,g,n} -> {[half: mua],[half: mus],[half: g],[half: n]} */
+#define MEDIA_2LABEL_SPLIT    97   /**<  media format: 64bit:{[byte: lower label][byte: upper label][byte*3: reference point][byte*3: normal vector]} */
+#define MEDIA_2LABEL_MIX      98   /**<  media format: {[int: label1][int: label2][float32: label1 %]} -> 32bit:{[short 0-32767 scaled label1 %],[byte: label2],[byte: label1]} */
+#define MEDIA_LABEL_HALF      99   /**<  media format: {[float32: mua/mus/g/n][float32: 1/2/3/4][float32: label]} -> 32bit:{[half: mua/mus/g/n][int16: [B15-B16: 0/1/2/3][B1-B14: tissue type]} */
 #define MEDIA_AS_F2H          100  /**<  media format: {[float32: mua][float32: mus]} -> 32bit:{[half: mua],{half: mus}} */
 #define MEDIA_MUA_FLOAT       101  /**<  media format: 32bit:{[float32: mua]} */
 #define MEDIA_AS_HALF         102  /**<  media format: 32bit:{[half: mua],[half: mus]} */
@@ -90,6 +98,7 @@
 #define MCX_SRC_PENCILARRAY 14 /**<  a rectangular array of pencil beams */
 #define MCX_SRC_PATTERN3D  15  /**<  a 3D pattern source, starting from srcpos, srcparam1.{x,y,z} define the x/y/z dimensions */
 #define MCX_SRC_HYPERBOLOID_GAUSSIAN 16 /**<  Gaussian-beam with spot focus, scrparam1.{x,y,z} define beam waist, distance from source to focus, rayleigh range */
+#define MCX_SRC_RING       17 /**<  ring/ring-sector source, scrparam1.{x,y} defines the outer/inner radius, srcparam1.{z,w} defines start/end angle*/
 
 #define SAVE_DETID(a)         ((a)    & 0x1)   /**<  mask to save detector ID*/
 #define SAVE_NSCAT(a)         ((a)>>1 & 0x1)   /**<  output partial scattering counts */
@@ -122,8 +131,10 @@
     #define S_RED     "\x1b[31m"
     #define S_GREEN   "\x1b[32m"
     #define S_YELLOW  "\x1b[33m"
+    #define B_WHITE   "\x1b[100m"
     #define S_BLUE    "\x1b[34m"
     #define S_MAGENTA "\x1b[35m"
+    #define L_MAGENTA "\x1b[95m"
     #define S_CYAN    "\x1b[36m"
     #define S_BOLD    "\x1b[1m"
     #define S_ITALIC  "\x1b[3m"
@@ -132,8 +143,10 @@
     #define S_RED
     #define S_GREEN
     #define S_YELLOW
+    #define B_WHITE
     #define S_BLUE
     #define S_MAGENTA
+    #define L_MAGENTA
     #define S_CYAN
     #define S_BOLD
     #define S_ITALIC

@@ -2,21 +2,25 @@
 **  \mainpage Monte Carlo eXtreme - GPU accelerated Monte Carlo Photon Migration
 **
 **  \author Qianqian Fang <q.fang at neu.edu>
-**  \copyright Qianqian Fang, 2009-2022
+**  \copyright Qianqian Fang, 2009-2025
 **
-**  \section sref Reference:
-**  \li \c (\b Fang2009) Qianqian Fang and David A. Boas, 
+**  \section sref Reference
+**  \li \c (\b Fang2009) Qianqian Fang and David A. Boas,
 **          <a href="http://www.opticsinfobase.org/abstract.cfm?uri=oe-17-22-20178">
-**          "Monte Carlo Simulation of Photon Migration in 3D Turbid Media Accelerated 
+**          "Monte Carlo Simulation of Photon Migration in 3D Turbid Media Accelerated
 **          by Graphics Processing Units,"</a> Optics Express, 17(22) 20178-20190 (2009).
 **  \li \c (\b Yu2018) Leiming Yu, Fanny Nina-Paravecino, David Kaeli, and Qianqian Fang,
 **          "Scalable and massively parallel Monte Carlo photon transport
-**           simulations for heterogeneous computing platforms," J. Biomed. Optics, 
+**           simulations for heterogeneous computing platforms," J. Biomed. Optics,
 **           23(1), 010504, 2018. https://doi.org/10.1117/1.JBO.23.1.010504
-**  \li \c (\b Yan2020) Shijie Yan and Qianqian Fang* (2020), "Hybrid mesh and voxel 
-**          based Monte Carlo algorithm for accurate and efficient photon transport 
-**          modeling in complex bio-tissues," Biomed. Opt. Express, 11(11) 
+**  \li \c (\b Yan2020) Shijie Yan and Qianqian Fang* (2020), "Hybrid mesh and voxel
+**          based Monte Carlo algorithm for accurate and efficient photon transport
+**          modeling in complex bio-tissues," Biomed. Opt. Express, 11(11)
 **          pp. 6262-6270. https://doi.org/10.1364/BOE.409468
+**
+**  \section sformat Formatting
+**          Please always run "make pretty" inside the \c src folder before each commit.
+**          The above command requires \c astyle to perform automatic formatting.
 **
 **  \section slicense License
 **          GPL v3, see LICENSE.txt for details
@@ -32,7 +36,7 @@
 
 #define MSTR(...) #__VA_ARGS__
 
-const char *benchname[MAX_MCX_BENCH]={"cube60","cube60b","cube60planar","cubesph60b","skinvessel","sphshells","spherebox",
+const char *benchname[MAX_MCX_BENCH]={"cube60","cube60b","cube60planar","cubesph60b","onecube","twocube","skinvessel","sphshells","spherebox",
 #ifndef _MSC_VER
 			 "colin27",""};
 #else
@@ -264,6 +268,114 @@ MSTR(
 
 MSTR(
 {
+    "Session":{
+        "ID":"onecube",
+        "DoSaveVolume":0,
+        "DoAutoThread":1,
+        "SaveDataMask":"xv",
+        "Photons":1000000
+    },
+    "Forward":{
+        "T0":0,
+        "T1":5e-09,
+        "Dt":5e-09
+    },
+    "Optode":{
+        "Source":{
+            "Pos":[0.5,0.5,0],
+            "Dir":[0,0,1]
+        },
+        "Detector":[
+            {
+                "Pos":[0.5,0.45,0],
+                "R":0.0166666667
+            }
+        ]
+    },
+    "Domain":{
+        "OriginType":1,
+        "LengthUnit":60,
+        "Media":[
+            {
+                "mua":0,
+                "mus":0,
+                "g":1,
+                "n":1
+            },
+            {
+                "mua":0.005,
+                "mus":1,
+                "g":0,
+                "n":1.37
+            }
+        ],
+        "MediaFormat":"byte",
+        "Dim":[1,1,1]
+    },
+    "Shapes": {
+        "_ArraySize_": [1,1,1],
+        "_ArrayType_": "uint8",
+        "_ArrayData_": [1]
+    }
+}),
+
+
+MSTR(
+{
+    "Session":{
+        "ID":"twocube",
+        "DoSaveVolume":0,
+        "DoAutoThread":1,
+        "SaveDataMask":"xv",
+        "Photons":1000000
+    },
+    "Forward":{
+        "T0":0,
+        "T1":5e-09,
+        "Dt":5e-09
+    },
+    "Optode":{
+        "Source":{
+            "Pos":[1,1,0],
+            "Dir":[0,0,1]
+        },
+        "Detector":[
+            {
+                "Pos":[1,0.9,0],
+                "R":0.033333333333
+            }
+        ]
+    },
+    "Domain":{
+        "OriginType":1,
+        "LengthUnit":30,
+        "Media":[
+            {
+                "mua":0,
+                "mus":0,
+                "g":1,
+                "n":1
+            },
+            {
+                "mua":0.005,
+                "mus":1,
+                "g":0,
+                "n":1.37
+            }
+        ],
+        "MediaFormat":"byte",
+        "Dim":[2,2,2]
+    },
+    "Shapes": {
+        "_ArraySize_": [2,2,2],
+        "_ArrayType_": "uint8",
+        "_ArrayData_": [1,1,1,1,1,1,1,1]
+    }
+}),
+
+
+MSTR(
+{
 	"Session":	{
 		"ID":	"skinvessel",
 		"Photons":	1e6,
@@ -410,7 +522,7 @@ MSTR(
 		"DoSpecular":	false,
 		"DebugFlag":	0,
 		"SaveDataMask":	0,
-		"OutputFormat":	"mc2",
+		"OutputFormat":	"jnii",
 		"OutputType":	"x"
 	},
 	"Forward":	{
@@ -486,7 +598,7 @@ MSTR(
              {"mua": 0.00, "mus": 0.0, "g": 1.00, "n": 1.0},
              {"mua": 0.019, "mus": 7.8182, "g": 0.89, "n": 1.37},
              {"mua": 0.019, "mus": 7.8182, "g": 0.89, "n": 1.37},
-             {"mua": 0.004, "mus": 0.009, "g": 0.89, "n": 1.37},
+             {"mua": 0.0004, "mus": 0.009, "g": 0.89, "n": 1.37},
              {"mua": 0.02, "mus": 9.0, "g": 0.89, "n": 1.37},
              {"mua": 0.08, "mus": 40.9, "g": 0.84, "n": 1.37},
              {"mua": 0.0,"mus": 0.0, "g": 1.0, "n": 1.0}

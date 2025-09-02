@@ -1,18 +1,19 @@
-![](http://mcx.space/img/mcx18_banner.png)
+![](https://mcx.space/img/mcx_wiki_banner.png)
 
 # PMCX - Python bindings for Monte Carlo eXtreme photon transport simulator
 
-- Copyright: (C) Matin Raayai Ardakani (2022-2023) <raayaiardakani.m at northeastern.edu> 
-and Qianqian Fang (2019-2023) <q.fang at neu.edu>
+- Copyright: (C) Matin Raayai Ardakani (2022-2023) <raayaiardakani.m at northeastern.edu>, Qianqian Fang (2019-2025) <q.fang at neu.edu>, Fan-Yu Yen (2023-2024) <yen.f at northeastern.edu>
 - License: GNU Public License V3 or later
-- Version: 0.0.13
+- Version: 0.5.1
 - URL: https://pypi.org/project/pmcx/
 - Github: https://github.com/fangq/mcx
 
-[![Build Status](https://travis-ci.com/fangq/mcx.svg?branch=master)](https://travis-ci.com/fangq/mcx)
+![Linux Python Module](https://github.com/fangq/mcx/actions/workflows/build_linux_manywheel.yml/badge.svg)\
+![MacOS Python Module](https://github.com/fangq/mcx/actions/workflows/build_macos_wheel.yml/badge.svg)\
+![Windows Python Module](https://github.com/fangq/mcx/actions/workflows/build_windows_wheel.yml/badge.svg)
 
 This module provides a Python binding for Monte Carlo eXtreme (MCX).
-For other binaries, including the standalone executable and the MATLAB bindings, see [our website](http://mcx.space).
+For other binaries, including the standalone executable and the MATLAB bindings, see [our website](https://mcx.space).
 
 Monte Carlo eXtreme (MCX) is a fast photon transport simulation software for 3D 
 heterogeneous turbid media. By taking advantage of the massively parallel 
@@ -87,29 +88,24 @@ The NVIDIA GPU driver of the target system must support the selected CUDA toolki
   CMake is also widely available on package managers across all operating systems.
   Additionally, on Windows, make sure **Visual Studio's C++ CMake tools for Windows** is also installed by selecting its option
   during installation.
-* **Zlib Compression Development Headers**: On Linux, this is generally available via the built-in package manager. For 
-  example, on Debian-based distributions like Ubuntu it is available via ```apt``` under the name ```zlib1g-dev```. On
-  macOS, brew provides it under the name ```zlib```. No packaged versions of Zlib are available for windows, therefore it must be
-  downloaded manually and added to the CMake environment variables in your working Powershell session:
-  ```powershell
-    curl.exe --retry 3 -kL https://cytranet.dl.sourceforge.net/project/gnuwin32/zlib/1.2.3/zlib-1.2.3-lib.zip --output zlib.zip
-    Expand-Archive .\zlib.zip -DestinationPath zlib\
-    $env:CMAKE_INCLUDE_PATH=$PWD\zlib\include
-    $env:CMAKE_LIBRARY_PATH=$PWD\zlib\lib
-  ```
 
 ### Build Steps
 1. Ensure that ```cmake```, ```nvcc``` (NVIDIA CUDA Compiler) and the C/C++ compiler are all located over your ```PATH```.
 This can be queried via ```echo $env:PATH``` on Windows or ```echo $PATH``` on Linux. If not, locate them and add their folder to the ```PATH```.
 
 2. Clone the repository and switch to the ```pmcx/``` folder:
-    ```bash
-        git clone --recursive https://github.com/fangq/mcx.git
-        cd mcx/pmcx
-    ```
+```bash
+git clone --recursive https://github.com/fangq/mcx.git
+cd mcx/pmcx
+```
 
-3. Either run ```python setup.py install``` or ```pip install .``` to directly install, or run ```pip wheel .``` to only
-build the Python wheel without installing it.
+3. One can run `python3 setup.py install` or `python3 -m pip install .` to both locally build and install the module
+
+4. If one only wants to locally build the module, one should run `python3 -m pip wheel .`
+
+5. If the binary module is successfully built locally, you should see a binary wheel file `pmcx-X.X.X-cpXX-cpXX-*.whl`
+stored inside the `mcx/pmcx` folder. You can install this wheel package using `python3 -m pip install --force-reinstall pmcx-*.whl`
+to force installing this locally compiled `pmcx` module and overwrite any previously installed versions.
 
 
 ## How to use
@@ -138,12 +134,14 @@ plt.show()
 ```
 
 * Alternatively, one can also define a Python dict object containing each setting
-as a key, and pass on the dict object to `pmcx.run()`
+as a key, and pass on the dict object to `pmcx.run()`, or preferably, `pmcx.mcxlab()`
 
 ```python3
 import pmcx
 import numpy as np
 cfg = {'nphoton': 1000000, 'vol':np.ones([60,60,60],dtype='uint8'), 'tstart':0, 'tend':5e-9, 'tstep':5e-9,
        'srcpos': [30,30,0], 'srcdir':[0,0,1], 'prop':[[0,0,1,1],[0.005,1,0.01,1.37]]}
-res = pmcx.run(cfg)
+res = pmcx.run(cfg)      # pmcx.run returns detected photon data as a concatenated 2D array res['detp'], same for res['traj']
+# or alternatively/preferably
+res = pmcx.mcxlab(cfg)   # pmcx.mcxlab calls pmcx.run, and postprocess res['detp'] and res['traj'] raw data into dict form
 ```

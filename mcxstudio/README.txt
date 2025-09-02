@@ -4,8 +4,8 @@
 
 Author:  Qianqian Fang <q.fang at neu.edu>
 License: GNU General Public License version 3 (GPLv3)
-Version: 0.9.9 (v2022.10)
-Website: http://mcx.space
+Version: 1.8 (v2025.6.pre)
+Website: https://mcx.space
 
 ---------------------------------------------------------------------
 
@@ -97,6 +97,7 @@ After applying the above command, you should be able to start mcxstudio
 (and mcxshow, mcxviewer applications) by double-clicking on their icons.
 
 ---------------------------------------------------------------------------
+
 == # Using MCX Studio GUI ==
 
 
@@ -141,6 +142,7 @@ associated with mcxstudio executable. To load a .mcxp file, you can simply
 double-click on the file, mcxstudio will be started automatically.
 
 ---------------------------------------------------------------------------
+
 == # Remote Execution ==
 
 MCXStudio not only supports running mmc/mmc/mcxcl simulations on your local
@@ -148,7 +150,7 @@ computer, but also running those remotely on a more powerful server/cluster.
 Additional information and video tutorial regarding remote execution can be 
 found at
 
-http://mcx.space/wiki/index.cgi?Workshop/MCX18Preparation/MethodB
+https://mcx.space/wiki/index.cgi?Workshop/MCX18Preparation/MethodB
 
 To use the remote execution feature, one must download and install the 
 needed MC simulator (mcx/mmc/mcxcl) in the remote server first, and make sure
@@ -222,13 +224,14 @@ transfer to work.
 
 
 ---------------------------------------------------------------------------
+
 == #  Acknowledgement ==
 
 The icon set was created by Qianqian Fang, with a style inspired by 
 the "Uniform" icon-set 
 URL: https://github.com/0rAX0/uniform-icon-theme
 
-The JSON shape editor uses an function "ShpwJSONData"  
+The JSON shape editor uses an function "ShowJSONData"  
 adapted from the "jsonviewer" example in Lazarus.
 URL: http://wiki.freepascal.org/fcl-json#From_JsonViewer
 

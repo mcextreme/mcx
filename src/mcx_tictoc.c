@@ -2,9 +2,9 @@
 **  \mainpage Monte Carlo eXtreme - GPU accelerated Monte Carlo Photon Migration
 **
 **  \author Qianqian Fang <q.fang at neu.edu>
-**  \copyright Qianqian Fang, 2009-2022
+**  \copyright Qianqian Fang, 2009-2025
 **
-**  \section sref Reference:
+**  \section sref Reference
 **  \li \c (\b Fang2009) Qianqian Fang and David A. Boas,
 **          <a href="http://www.opticsinfobase.org/abstract.cfm?uri=oe-17-22-20178">
 **          "Monte Carlo Simulation of Photon Migration in 3D Turbid Media Accelerated
@@ -17,6 +17,10 @@
 **          based Monte Carlo algorithm for accurate and efficient photon transport
 **          modeling in complex bio-tissues," Biomed. Opt. Express, 11(11)
 **          pp. 6262-6270. https://doi.org/10.1364/BOE.409468
+**
+**  \section sformat Formatting
+**          Please always run "make pretty" inside the \c src folder before each commit.
+**          The above command requires \c astyle to perform automatic formatting.
 **
 **  \section slicense License
 **          GPL v3, see LICENSE.txt for details
@@ -220,3 +224,35 @@ void sleep_ms(int milliseconds) {
     usleep(milliseconds * 1000);
 #endif
 }
+
+
+#if defined(_WIN32) && defined(USE_OS_TIMER) && !defined(MCX_CONTAINER)
+
+#ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+    #define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+#endif
+
+int EnableVTMode() {
+    // Set output mode to handle virtual terminal sequences
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    if (hOut == INVALID_HANDLE_VALUE) {
+        return 0;
+    }
+
+    DWORD dwMode = 0;
+
+    if (!GetConsoleMode(hOut, &dwMode)) {
+        return 0;
+    }
+
+    dwMode |= ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+
+    if (!SetConsoleMode(hOut, dwMode)) {
+        return 0;
+    }
+
+    return 1;
+}
+
+#endif

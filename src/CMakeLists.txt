@@ -11,11 +11,10 @@
 # your system and is supported by nvcc
 #################################################################
 
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.5)
 
 project(mcx)
 
-find_package(ZLIB REQUIRED)
 find_package(CUDA QUIET REQUIRED)
 
 find_package(OpenMP REQUIRED)
@@ -41,7 +40,7 @@ string(PREPEND OMPFLAG "-Xcompiler ")
 set(
     CUDA_NVCC_FLAGS
     ${CUDA_NVCC_FLAGS};
-    -g -lineinfo -Xcompiler -Wall -Xcompiler -O3 -arch=sm_35
+    -g -lineinfo -Xcompiler -Wall -Xcompiler -O3 -arch=sm_50
     -DMCX_TARGET_NAME="Fermi MCX" -DUSE_ATOMIC -use_fast_math
     -DSAVE_DETECTORS -Xcompiler -fPIC ${OMPFLAG}
     )
@@ -50,6 +49,7 @@ set(
 set(CMAKE_C_FLAGS "-g -Wall -std=c99 -fPIC")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../lib)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Add include directories
 include_directories(cjson ubj zmat zmat/easylzma)
@@ -67,10 +67,14 @@ cuda_add_library(mcx STATIC
     mcx_shapes.h
     mcx_bench.c
     mcx_bench.h
+    mcx_lang.c
+    mcx_lang.h
     mcx_mie.cpp
     mcx_mie.h
     mcx_tictoc.c
     mcx_tictoc.h
+    mcx_neurojson.cpp
+    mcx_neurojson.h
     cjson/cJSON.c
     cjson/cJSON.h
     ubj/ubj.h
@@ -91,7 +95,6 @@ target_link_libraries(
     mcx-exe
     mcx OpenMP::OpenMP_CXX
     zmat
-    ZLIB::ZLIB
     )
 
 if (BUILD_PYTHON)
@@ -104,6 +107,8 @@ if (BUILD_PYTHON)
             mcx_shapes.h
             mcx_bench.c
             mcx_bench.h
+            mcx_lang.c
+            mcx_lang.h
             mcx_mie.cpp
             mcx_mie.h
             mcx_tictoc.c
@@ -135,6 +140,8 @@ if(BUILD_MEX AND Matlab_FOUND)
             mcx_shapes.h
             mcx_bench.c
             mcx_bench.h
+            mcx_lang.c
+            mcx_lang.h
             mcx_mie.cpp
             mcx_mie.h
             mcx_tictoc.c
@@ -145,11 +152,21 @@ if(BUILD_MEX AND Matlab_FOUND)
 
     target_compile_definitions(mcx-matlab PUBLIC MCX_CONTAINER MATLAB_MEX_FILE)
 
-    matlab_add_mex(
-      NAME mcxlab
-      SRC mcxlab.cpp
-      LINK_TO mex mx mcx-matlab
-    )
+    if(${CMAKE_VERSION} VERSION_LESS "3.24.0")
+            matlab_add_mex(
+              NAME mcxlab
+              SRC mcxlab.cpp
+              LINK_TO OpenMP::OpenMP_CXX mcx-matlab
+            )
+    else()
+            matlab_add_mex(
+              NAME mcxlab
+              SRC mcxlab.cpp
+              NO_IMPLICIT_LINK_TO_MATLAB_LIBRARIES
+              LINK_TO ${Matlab_MEX_LIBRARY} ${Matlab_MX_LIBRARY} OpenMP::OpenMP_CXX mcx-matlab
+            )
+    endif()
+
 
     target_compile_definitions(mcxlab PUBLIC MCX_CONTAINER MATLAB_MEX_FILE)
 

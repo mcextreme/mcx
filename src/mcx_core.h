@@ -2,9 +2,9 @@
 **  \mainpage Monte Carlo eXtreme - GPU accelerated Monte Carlo Photon Migration
 **
 **  \author Qianqian Fang <q.fang at neu.edu>
-**  \copyright Qianqian Fang, 2009-2022
+**  \copyright Qianqian Fang, 2009-2025
 **
-**  \section sref Reference:
+**  \section sref Reference
 **  \li \c (\b Fang2009) Qianqian Fang and David A. Boas,
 **          <a href="http://www.opticsinfobase.org/abstract.cfm?uri=oe-17-22-20178">
 **          "Monte Carlo Simulation of Photon Migration in 3D Turbid Media Accelerated
@@ -17,6 +17,10 @@
 **          based Monte Carlo algorithm for accurate and efficient photon transport
 **          modeling in complex bio-tissues," Biomed. Opt. Express, 11(11)
 **          pp. 6262-6270. https://doi.org/10.1364/BOE.409468
+**
+**  \section sformat Formatting
+**          Please always run "make pretty" inside the \c src folder before each commit.
+**          The above command requires \c astyle to perform automatic formatting.
 **
 **  \section slicense License
 **          GPL v3, see LICENSE.txt for details
@@ -116,6 +120,13 @@ typedef union  __align__(16) GProperty {
     float  f[4];
 } Gprop;
 
+typedef struct  __align__(16) MCXSource {
+    float4 pos;      /**< initial position vector, for pencil beam */
+    float4 dir;      /**< initial directon vector, for pencil beam */
+    float4 param1;   /**< source parameters set 1 */
+    float4 param2;   /**< source parameters set 2 */
+} MCXSrc;
+
 typedef unsigned char uchar;
 
 /**
@@ -136,8 +147,9 @@ typedef struct  __align__(16) KernelParams {
     unsigned int dorefint;             /**< flag if mcx perform reflection calculations at internal boundaries */
     unsigned int savedet;              /**< flag if mcx outputs detected photon partial length data */
     float  Rtstep;                     /**< reciprocal of the step size */
-    float4 ps;                         /**< initial position vector, for pencil beam */
-    float4 c0;                         /**< initial directon vector, for pencil beam */
+    MCXSrc src;                        /**< additional source data, including pos, dir, param1, param2 */
+    unsigned int extrasrclen;          /**< number of additional sources */
+    int srcid;                         /**< 0: simulate all sources combined, -1: simulate all sources separately; >0: only simulate a single source */
     float4 s0;                         /**< initial stokes parameters, for polarized photon simulation */
     float3 maxidx;                     /**< maximum index in x/y/z directions for out-of-bound tests */
     uint4  dimlen;                     /**< maximum index used to convert x/y/z to 1D array index */
@@ -148,21 +160,18 @@ typedef struct  __align__(16) KernelParams {
     float  skipradius2;                /**< square of the radius within which the data is cached (obsolete) */
     float  minaccumtime;               /**< time steps for tMCimg like weight accummulation (obsolete) */
     int    srctype;                    /**< type of the source */
-    float4 srcparam1;                  /**< source parameters set 1 */
-    float4 srcparam2;                  /**< source parameters set 2 */
     int voidtime;                      /**< flag if the time-of-flight in the background is counted */
     unsigned int maxdetphoton;         /**< max number of detected photons */
     unsigned int maxmedia;             /**< max number of media labels */
     unsigned int detnum;               /**< max number of detectors */
     unsigned int maxpolmedia;          /**< max number of media labels for polarized light */
     unsigned int maxgate;              /**< max number of time gates */
-    unsigned int idx1dorig;            /**< pre-computed 1D index of the photon at launch for pencil/isotropic beams */
-    unsigned int mediaidorig;          /**< pre-computed media index of the photon at launch for pencil/isotropic beams */
     unsigned int isatomic;             /**< whether atomic operations are used */
     unsigned int maxvoidstep;          /**< max steps that photon can travel in the background before entering non-zero voxels */
     unsigned int issaveseed;           /**< flag if one need to save the detected photon seeds for replay */
     unsigned int issaveref;            /**< flag if one need to save diffuse reflectance data in the 0-voxel layer next to the boundary */
     unsigned int isspecular;           /**< 0 do not perform specular reflection at launch, 1 do specular reflection */
+    unsigned int istrajstokes;         /**<1 to save Stoke's vector for trajectory data only */
     unsigned int seedoffset;           /**< offset of the seed, not used */
     int seed;                          /**< RNG seed passted from the host */
     unsigned int outputtype;           /**< Type of output to be accummulated */
@@ -181,8 +190,11 @@ typedef struct  __align__(16) KernelParams {
     int replaydet;                     /**< select which detector to replay, 0 for all, -1 save all separately */
     unsigned int srcnum;               /**< total number of source patterns */
     unsigned int nphase;               /**< number of samples for inverse-cdf, will be added by 2 to include -1 and 1 on the two ends */
+    unsigned int nphaselen;            /**< even-rounded nphase so that shared memory buffer won't give an error */
+    unsigned int nangle;               /**< number of samples for launch angle inverse-cdf, will be added by 2 to include 0 and 1 on the two ends */
+    unsigned int nanglelen;            /**< even-rounded nangle so that shared memory buffer won't give an error */
     float omega;                       /**< modulation angular frequency (2*pi*f), in rad/s, for FD/RF replay */
-    unsigned char bc[12];              /**< boundary conditions */
+    unsigned char bc[12];              /**< boundary condition flags, copy the first 12 chars from cfg->bc without the terminating NULL */
 } MCXParam;
 
 void mcx_run_simulation(Config* cfg, GPUInfo* gpu);

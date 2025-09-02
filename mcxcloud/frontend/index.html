@@ -41,14 +41,14 @@
   font-family: 'Ubuntu';
   font-style: normal;
   font-weight: 500;
-  src: local('Ubuntu Medium'), local('Ubuntu-Medium'), url('http://mcx.space/fonts/ubuntu-medium.woff2') format('woff2'),  url('http://mcx.space/fonts/ubuntu-medium.woff') format('woff');
+  src: local('Ubuntu Medium'), local('Ubuntu-Medium'), url('https://mcx.space/fonts/ubuntu-medium.woff2') format('woff2'),  url('https://mcx.space/fonts/ubuntu-medium.woff') format('woff');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
 }
 @font-face {
   font-family: 'Ubuntu';
   font-style: normal;
   font-weight: 300;
-  src: url('http://mcx.space/fonts/ubuntu-light.woff') format('woff');
+  src: url('https://mcx.space/fonts/ubuntu-light.woff') format('woff');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
 }
 
@@ -56,7 +56,7 @@
   font-family: 'Ubuntu';
   font-style: bold;
   font-weight: 700;
-  src: url('http://mcx.space/fonts/ubuntu-bold.woff') format('woff');
+  src: url('https://mcx.space/fonts/ubuntu-bold.woff') format('woff');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
 }
 
@@ -276,12 +276,24 @@ img.simupreview{
   color: yellow;
   float: right;
 }
-
+.layersize {
+  width: 3rem;
+}
+input[type=number]::-webkit-inner-spin-button {
+  opacity: 1;
+}
+.controlrow {
+  white-space: nowrap;
+}
+#submitserver {
+  background-color: #e8efff;
+}
 </style>
 
 <section id="mcx1-title" class='current'>
         <h1>MCX Cloud</h1>
-	<h4>Scalable, cloud-based GPU Monte Carlo photon simulator based on <a href="http://mcx.space" title="Monte Carlo eXtreme">MCX</a> and <a href="https://neurojson.org" title="NeuroJSON">JData</a>. See <a href="https://youtu.be/TnfmrO12jI0" title="Video tutorial">Tutorial 1</a>,<a href="https://youtu.be/RztC-uXMqkw" title="Sharing and reuse simulations">2</a> & <a href="https://doi.org/10.1117/1.JBO.27.8.083008">Full Paper</a>.</h4>
+	<h4>Scalable, cloud-based GPU Monte Carlo photon simulator based on <a href="https://mcx.space" title="Monte Carlo eXtreme">MCX</a> and <a href="https://neurojson.org" title="NeuroJSON">JData</a>. See <a href="https://youtu.be/TnfmrO12jI0" title="Video tutorial">Tutorial 1</a>,<a href="https://youtu.be/RztC-uXMqkw" title="Sharing and reuse simulations">2</a> & <a href="https://doi.org/10.1117/1.JBO.27.8.083008">Full Paper</a>.</h4>
+        <h5>Choose server:  <select id="submitserver" title="If the main server is down, please choose the backup server; this does not change how fast the job is being processed."><option value="kwafoo">Main server</option><option value="wazu">Backup server 1</option></select></h5>
 	</p>
 </section>
 
@@ -354,9 +366,9 @@ img.simupreview{
         <div style="display:block;">
           <b>Display Mode</b><br>
           <input type="radio" id="mip-radio-button" name="displaymode" value="mip" checked>
-          <label for="mip">MIP</label><br>
+          <label for="mip-radio-button">MIP</label><br>
           <input type="radio" id="iso-radio-button" name="displaymode" value="iso">
-          <label for="iso">Isosurface</label>
+          <label for="iso-radio-button">Isosurface</label>
         </div>
         <div style="display:block;">
           <b>Colormap</b><br>
@@ -365,20 +377,27 @@ img.simupreview{
         </div>
         <div style="display:block;">
           <b>Cross Sections</b><br>
-          <div>
+          <div class="controlrow">
             X
             <label for="cross-x-low">Min </label><input style="width: 90px" id="cross-x-low" type="range" min="0" max="1" value="0" step="any">
             <label for="cross-x-hi">Max </label><input style="width: 90px" id="cross-x-hi" type="range" min="0" max="1" value="1" step="any">
+            <input id="x_thickness" class="layersize" type="number" min="0" max="1" value="0" title="set x-axis rendering thickness"/>
           </div>
-          <div>
+          <div class="controlrow">
             Y
             <label for="cross-y-low">Min </label><input style="width: 90px" id="cross-y-low" type="range" min="0" max="1" value="0" step="any">
             <label for="cross-y-hi">Max </label><input style="width: 90px" id="cross-y-hi" type="range" min="0" max="1" value="1" step="any">
+            <input id="y_thickness" class="layersize" type="number" min="0" max="1" value="0" title="set y-axis rendering thickness"/>
           </div>
-          <div>
+          <div class="controlrow">
             Z
             <label for="cross-z-low">Min </label><input style="width: 90px" id="cross-z-low" type="range" min="0" max="1" value="0" step="any">
             <label for="cross-z-hi">Max </label><input style="width: 90px" id="cross-z-hi" type="range" min="0" max="1" value="1" step="any">
+            <input id="z_thickness" class="layersize" type="number" min="0" max="1" value="0" title="set z-axis rendering thickness"/>
+          </div>
+          <div id='taxis'>
+            T
+            <label for="cross-t">Time </label><input style="width: 90px" id="cross-t" type="range" min="0" max="1" value="0" step="1">
           </div>
         </div>
         <div style="display:block;">
@@ -407,7 +426,7 @@ img.simupreview{
             <h2>Run</h2>
 	    <input id="fullname" name="fullname" type="text" value='' required minlength="3" placeholder="Full Name (required, internal use only, not be used publicly)">
 	    <input id="netname" name="netname" type="text" value='' required minlength="3" placeholder="Network Name (required, for future public use)">
-	    <input id="email" name="email" type="text" value='' required minlength="7" pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$" placeholder="Email (required, internal use only, not be used publicly)">
+	    <input id="email" name="email" type="text" value='' required minlength="7" pattern="^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$" placeholder="Email (required, internal use only, not be used publicly)" autocomplete="off">
 	    <input id="inst" name="inst" type="text" value='' required minlength="4" placeholder="Institute/Company (required, internal use only, not be used publicly)">
 	    <input id="jobid" type="hidden" name="jobid" value=''>
 	    <input id="jobhash" type="hidden" name="jobhash" value=''>
@@ -430,13 +449,13 @@ img.simupreview{
 	    <input id="semail" class="shortinput" name="semail" type="text" value='' required minlength="7" pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$" placeholder="Email (required, internal use only, not be used publicly)">
 	    <input id="snetname" class="shortinput" name="snetname" type="text" value='' minlength="3" placeholder="Your Network Name (public and searchable)">
 	    <input id="sinst" class="shortinput" name="sinst" type="text" value='' minlength="4" placeholder="Institute/Company (public, can be empty if you do not prefer to include)"><br/>
-	    <label for="slicense">Permission</label><input type="radio" id="CC0" name="slicense" value="CC0"><label for="CC0"><img src="https://mirrors.creativecommons.org/presskit/buttons/88x31/png/cc-zero.png" title="CC0 (Can be reused for any purpose, you do not claim copyright to the submitted simulation setting/data)"/></label>
+	    <label for="slicense">Permission</label><input type="radio" id="slicense" name="slicense" value="CC0"><label><img src="https://mirrors.creativecommons.org/presskit/buttons/88x31/png/cc-zero.png" title="CC0 (Can be reused for any purpose, you do not claim copyright to the submitted simulation setting/data)"/></label>
 	    <input type="radio" id="CC-BY" name="slicense" value="CC-BY"><label for="CC-BY"><img src="https://mirrors.creativecommons.org/presskit/buttons/88x31/png/by.png" title="CC-BY (Can be reused for any purpose, but reuser must acknowledge the creator)"/></label>
 	    <input type="radio" id="CC-BY-SA" name="slicense" value="CC-BY-SA"><label for="CC-BY-SA"><img src="https://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-sa.png" title="CC-BY-SA (Can be reused for any purpose, but reuser must acknowledge the creator and adaption must be shared under the same terms)"/></label><br/>
 	    </div>
 
 	    <div id="previewinfo">
-	    <label for="thumbnail">Preview</label><br/><img id="thumbnail" src="" title="Domain Preview"/>
+	    <label>Preview</label><br/><img id="thumbnail" src="" title="Domain Preview"/>
 	    </div>
 
 	    <div id="submitshare">
@@ -553,7 +572,7 @@ img.simupreview{
  <div style="float:left">
   <h3>Backend</h3>
   <ul>
-  <li>Monte Carlo eXtreme (MCX) (<a href="http://mcx.space/">http://mcx.space/</a>)</li>
+  <li>Monte Carlo eXtreme (MCX) (<a href="https://mcx.space/">https://mcx.space/</a>)</li>
   <li>Docker (<a href="https://docker.com/">https://docker.com/</a>)</li>
   <li>Docker Swarm (<a href="https://docs.docker.com/engine/swarm/">https://docs.docker.com/engine/swarm/</a>)</li>
   <li>Perl (<a href="https://www.perl.org/">https://perl.org</a>)</li>
@@ -564,9 +583,9 @@ img.simupreview{
 </section>
 
 <footer>
-  <span style="float:left">Copyright © 2021 <a href="http://github.com/fangq">Qianqian Fang</a></span>
+  <span style="float:left">Copyright © 2021 <a href="https://github.com/fangq">Qianqian Fang</a></span>
   Brought to you by <a href="http://fanglab.org" title="COTI Lab/aka Fang Lab"><img src="https://neurojson.org/img/coti_favicon.png" title="COTI Lab@Northeastern"/>COTILab</a>
-  <a href="http://mcx.space" title="MCX photon simulator"><img src="https://neurojson.org/img/mcx_logo_2020.png" title="MCX photon simulator"/>MCX</a>
+  <a href="https://mcx.space" title="MCX photon simulator"><img src="https://neurojson.org/img/mcx_logo_2020.png" title="MCX photon simulator"/>MCX</a>
   <a href="https://grantome.com/grant/NIH/R01-GM114365-06"><img src="https://neurojson.org/img/nih_nigms_logo.png" title="NIH/NIGMS Grant#R01-GM114365"/>NIH/NIGMS</a> 
   Powered by <span id="opensourcelib">open-source</span>
 </footer>
@@ -625,97 +644,97 @@ img.simupreview{
           "type": "boolean",
           "default": true
         },
-	"DoPartialPath": {
+        "DoPartialPath": {
           "title": "Save detected photons",
           "type": "boolean",
           "default": true
         },
-	"DoNormalize": {
+        "DoNormalize": {
           "title": "Do normalization",
           "type": "boolean",
           "default": true
         },
-	"DoSaveRef": {
+        "DoSaveRef": {
           "title": "Save diffuse reflectance",
           "type": "boolean",
           "default": false
         },
-	"DoSaveExit": {
+        "DoSaveExit": {
           "title": "Save exit position",
           "type": "boolean",
           "default": false
         },
-	"DoSaveSeed": {
+        "DoSaveSeed": {
           "title": "Save photon seeds",
           "type": "boolean",
           "default": false
         },
-	"DoDCS": {
+        "DoDCS": {
           "title": "Save momentum transfer",
           "type": "boolean",
           "default": false
         },
-	"DoSpecular": {
+        "DoSpecular": {
           "title": "Do specular reflection",
           "type": "boolean",
           "default": true
         },
-	"DebugFlag": {
-	  "oneOf" :[
-	   {
-            "title": "Debug flags",
-            "type": "string",
-            "default": ""
-	   },
-	   {
-            "title": "Debug flags",
-            "type": "integer",
-            "default": 0,
-	    "minimum": 0
-	   }
-	  ]
+        "DebugFlag": {
+          "oneOf": [
+            {
+              "title": "Debug flags",
+              "type": "string",
+              "default": ""
+            },
+            {
+              "title": "Debug flags",
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            }
+          ]
         },
-	"SaveDataMask": {
-	  "oneOf" :[
-	   {
-            "title": "Save detected photon flags",
-            "type": "string",
-            "default": "DP"
-	   },
-	   {
-            "title": "Save detected photon flags",
-            "type": "integer",
-            "default": 5,
-	    "minimum": 0
-	   }
-	  ]
+        "SaveDataMask": {
+          "oneOf": [
+            {
+              "title": "Save detected photon flags",
+              "type": "string",
+              "default": "DP"
+            },
+            {
+              "title": "Save detected photon flags",
+              "type": "integer",
+              "default": 5,
+              "minimum": 0
+            }
+          ]
         },
-	"OutputFormat": {
+        "OutputFormat": {
           "title": "Output file format",
           "type": "string",
-	  "default": "nii",
+          "default": "nii",
           "enum": [
-                "mc2",
-                "nii",
-		"jnii",
-		"bnii",
-                "hdr",
-		"tx3"
-              ]
+            "mc2",
+            "nii",
+            "jnii",
+            "bnii",
+            "hdr",
+            "tx3"
+          ]
         },
-	"OutputType": {
+        "OutputType": {
           "title": "Output data type",
           "type": "string",
-	  "default": "x",
+          "default": "x",
           "enum": [
-                "x",
-                "f",
-                "e",
-                "j",
-		"p",
-		"m",
-		"r"
-              ]
+            "x",
+            "f",
+            "e",
+            "j",
+            "p",
+            "m",
+            "r"
+          ]
         },
         "RNGSeed": {
           "title": "Random seed",
@@ -739,21 +758,21 @@ img.simupreview{
           "type": "number",
           "default": 0,
           "minimum": 0,
-          "maximum": 1e-7
+          "maximum": 1e-07
         },
         "T1": {
           "title": "Ending time",
           "type": "number",
-          "default": 5e-9,
+          "default": 5e-09,
           "minimum": 0,
-          "maximum": 1e-7
+          "maximum": 1e-07
         },
         "Dt": {
           "title": "Time gate width",
           "type": "number",
-          "default": 5e-9,
+          "default": 5e-09,
           "minimum": 0,
-          "maximum": 1e-7
+          "maximum": 1e-07
         }
       }
     },
@@ -793,7 +812,9 @@ img.simupreview{
                 "zgaussian",
                 "line",
                 "slit",
-                "pencilarray"
+                "pencilarray",
+                "hyperboloid",
+                "ring"
               ]
             },
             "Pos": {
@@ -830,11 +851,11 @@ img.simupreview{
               "title": "Source Parameter 1",
               "type": "array",
               "format": "table",
-	      "default": [
+              "default": [
                 0,
                 0,
                 0,
-		0
+                0
               ],
               "items": {
                 "type": "number"
@@ -846,11 +867,11 @@ img.simupreview{
               "title": "Source Parameter 2",
               "type": "array",
               "format": "table",
-	      "default": [
+              "default": [
                 0,
                 0,
                 0,
-		0
+                0
               ],
               "items": {
                 "type": "number"
@@ -863,6 +884,75 @@ img.simupreview{
               "type": "number",
               "default": 0,
               "minimum": 0
+            },
+            "Pattern": {
+              "title": "Source Pattern",
+              "type": "object",
+              "required": [
+                "_ArrayType_",
+                "_ArraySize_",
+                "_ArrayZipType_",
+                "_ArrayZipSize_",
+                "_ArrayZipData_"
+              ],
+              "properties": {
+                "_ArrayType_": {
+                  "type": "string",
+                  "default": "single",
+                  "enum": [
+                    "single"
+                  ]
+                },
+                "_ArraySize_": {
+                  "type": "array",
+                  "default": [
+                    0,
+                    0
+                  ],
+                  "format": "table",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "minItems": 2,
+                  "maxItems": 3
+                },
+                "_ArrayZipType_": {
+                  "type": "string",
+                  "default": "zlib",
+                  "enum": [
+                    "zlib",
+                    "gzip"
+                  ]
+                },
+                "_ArrayZipSize_": {
+                  "oneOf": [
+                    {
+                      "type": "integer",
+                      "default": 0,
+                      "minimum": 0
+                    },
+                    {
+                      "type": "array",
+                      "default": [
+                        0,
+                        0
+                      ],
+                      "format": "table",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "minItems": 2,
+                      "maxItems": 2
+                    }
+                  ]
+                },
+                "_ArrayZipData_": {
+                  "type": "string",
+                  "default": ""
+                }
+              }
             }
           }
         },
@@ -883,7 +973,7 @@ img.simupreview{
                 "items": {
                   "type": "number"
                 },
-		"default": [
+                "default": [
                   25,
                   30,
                   0
@@ -904,514 +994,553 @@ img.simupreview{
     },
     "Shapes": {
       "title": "Shapes",
-      "oneOf" :[
-	{
-	"type": "array",
-	"format": "table",
-	"items": {
-          "anyOf": [
-            {
-              "title": "Grid",
-              "type": "object",
-              "required": ["Grid"],
-              "properties": {
-	          "Grid":{
-                     "title": "Grid",
-                     "type": "object",
-		      "required": [
-			"Tag",
-			"Size"
-		      ],
-		     "properties": {
-			  "Tag": {
-			    "title": "Tag",
-			    "type": "integer",
-			    "default": 1,
-			    "minimum": 0
-			  },
-			  "Size": {
-			    "title": "Size",
-			    "type": "array",
-			    "format": "table",
-			    "default": [
-			       60,
-			       60,
-			       60
-			    ],
-			    "items": {
-			      "type": "number"
-			    },
-			    "minItems": 3,
-			    "maxItems": 3
-			  }
-		     }
-		  }
-        	}
-            },
-            {
-              "title": "Sphere",
-              "type": "object",
-              "required": ["Sphere"],
-              "properties": {
-		"Sphere":{
+      "oneOf": [
+        {
+          "type": "array",
+          "format": "table",
+          "items": {
+            "anyOf": [
+              {
+                "title": "Grid",
+                "type": "object",
+                "required": [
+                  "Grid"
+                ],
+                "properties": {
+                  "Grid": {
+                    "title": "Grid",
+                    "type": "object",
+                    "required": [
+                      "Tag",
+                      "Size"
+                    ],
+                    "properties": {
+                      "Tag": {
+                        "title": "Tag",
+                        "type": "integer",
+                        "default": 1,
+                        "minimum": 0
+                      },
+                      "Size": {
+                        "title": "Size",
+                        "type": "array",
+                        "format": "table",
+                        "default": [
+                          60,
+                          60,
+                          60
+                        ],
+                        "items": {
+                          "type": "number"
+                        },
+                        "minItems": 3,
+                        "maxItems": 3
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "title": "Sphere",
+                "type": "object",
+                "required": [
+                  "Sphere"
+                ],
+                "properties": {
+                  "Sphere": {
                     "title": "Sphere",
                     "type": "object",
-		    "required": [
-		       "Tag",
-		       "O",
-		       "R"
-		    ],
-		    "properties": {
-			  "Tag": {
-			      "title": "Tag",
-			      "type": "integer",
-			      "minimum": 0
-			    },
-			    "O": {
-			      "title": "Center",
-			      "type": "array",
-			      "format": "table",
-			      "items": {
-				"type": "number"
-			      },
-			      "default": [
-				 30,
-				 30,
-				 30
-			      ],
-			      "minItems": 3,
-			      "maxItems": 3
-			    },
-			    "R": {
-			      "title": "Radius",
-			      "type": "number",
-			      "minimum": 0
-			    }
-		     }
-		}
-              }
-            },
-            {
-              "title": "Box",
-              "type": "object",
-              "required": ["Box"],
-              "properties": {
-		"Box":{
+                    "required": [
+                      "Tag",
+                      "O",
+                      "R"
+                    ],
+                    "properties": {
+                      "Tag": {
+                        "title": "Tag",
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "O": {
+                        "title": "Center",
+                        "type": "array",
+                        "format": "table",
+                        "items": {
+                          "type": "number"
+                        },
+                        "default": [
+                          30,
+                          30,
+                          30
+                        ],
+                        "minItems": 3,
+                        "maxItems": 3
+                      },
+                      "R": {
+                        "title": "Radius",
+                        "type": "number",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "title": "Box",
+                "type": "object",
+                "required": [
+                  "Box"
+                ],
+                "properties": {
+                  "Box": {
                     "title": "Box",
                     "type": "object",
-		    "required": [
-		       "Tag",
-		       "O",
-		       "Size"
-		    ],
-		    "properties": {
-			"Tag": {
-			  "title": "Tag",
-			  "type": "integer",
-			  "minimum": 0
-			},
-			"Size": {
-			  "title": "Size",
-			  "type": "array",
-			  "format": "table",
-			  "items": {
-			    "type": "integer",
-			    "minimum": 0,
-			    "default": 0
-			  },
-			  "minItems": 3,
-			  "maxItems": 3
-			},
-			"O": {
-			  "title": "Origin",
-			  "type": "array",
-			  "format": "table",
-			  "items": {
-			    "type": "integer",
-			    "minimum": 0,
-			    "default": 0
-			  },
-			  "minItems": 3,
-			  "maxItems": 3
-			}
-		    }
-		}
-              }
-            },
-            {
-              "title": "Subgrid",
-              "type": "object",
-              "required": ["Subgrid"],
-              "properties": {
-		"Subgrid":{
+                    "required": [
+                      "Tag",
+                      "O",
+                      "Size"
+                    ],
+                    "properties": {
+                      "Tag": {
+                        "title": "Tag",
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "Size": {
+                        "title": "Size",
+                        "type": "array",
+                        "format": "table",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 0
+                        },
+                        "minItems": 3,
+                        "maxItems": 3
+                      },
+                      "O": {
+                        "title": "Origin",
+                        "type": "array",
+                        "format": "table",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 0
+                        },
+                        "minItems": 3,
+                        "maxItems": 3
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "title": "Subgrid",
+                "type": "object",
+                "required": [
+                  "Subgrid"
+                ],
+                "properties": {
+                  "Subgrid": {
                     "title": "Subgrid",
                     "type": "object",
-		    "required": [
-		       "Tag",
-		       "O",
-		       "Size"
-		    ],
-  		    "properties": {
-			"Tag": {
-			  "title": "Tag",
-			  "type": "integer",
-			  "minimum": 0
-			},
-			"Size": {
-			  "title": "Size",
-			  "type": "array",
-			  "format": "table",
-			  "items": {
-			    "type": "integer",
-			    "minimum": 0,
-			    "default": 0
-			  },
-			  "minItems": 3,
-			  "maxItems": 3
-			},
-			"O": {
-			  "title": "Origin",
-			  "type": "array",
-			  "format": "table",
-			  "items": {
-			    "type": "integer",
-			    "minimum": 0,
-			    "default": 0
-			  },
-			  "minItems": 3,
-			  "maxItems": 3
-			}
-		    }
-		}
-              }
-            },
-            {
-              "title": "Cylinder",
-              "type": "object",
-              "required": ["Cylinder"],
-              "properties": {
-		"Cylinder":{
+                    "required": [
+                      "Tag",
+                      "O",
+                      "Size"
+                    ],
+                    "properties": {
+                      "Tag": {
+                        "title": "Tag",
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "Size": {
+                        "title": "Size",
+                        "type": "array",
+                        "format": "table",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 0
+                        },
+                        "minItems": 3,
+                        "maxItems": 3
+                      },
+                      "O": {
+                        "title": "Origin",
+                        "type": "array",
+                        "format": "table",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 0
+                        },
+                        "minItems": 3,
+                        "maxItems": 3
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "title": "Cylinder",
+                "type": "object",
+                "required": [
+                  "Cylinder"
+                ],
+                "properties": {
+                  "Cylinder": {
                     "title": "Cylinder",
                     "type": "object",
-		    "required": [
-		       "Tag",
-		       "C0",
-		       "C1",
-		       "R"
-		    ],
-  		    "properties": {
-			"Tag": {
-			  "title": "Tag",
-			  "type": "integer",
-			  "minimum": 0
-			},
-			"C0": {
-			  "title": "Axis Center 1",
-			  "type": "array",
-			  "format": "table",
-			  "items": {
-			    "type": "number"
-			  },
-			  "minItems": 3,
-			  "maxItems": 3
-			},
-			"C1": {
-			  "title": "Axis Center 2",
-			  "type": "array",
-			  "format": "table",
-			  "items": {
-			    "type": "number"
-			  },
-			  "minItems": 3,
-			  "maxItems": 3
-			},
-			"R": {
-			  "title": "Radius",
-			  "type": "number",
-			  "minimum": 0
-			}
-		    }
-		}
-              }
-            },
-            {
-              "title": "Name",
-              "type": "object",
-              "required": ["Name"],
-              "properties": {
-		 "Name":{
-                     "type": "string",
-	             "default": ""
-		 }
-	      }
-            },
-            {
-              "title": "Origin",
-              "type": "object",
-              "required": ["Origin"],
-              "properties": {
-		"Origin":{
+                    "required": [
+                      "Tag",
+                      "C0",
+                      "C1",
+                      "R"
+                    ],
+                    "properties": {
+                      "Tag": {
+                        "title": "Tag",
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "C0": {
+                        "title": "Axis Center 1",
+                        "type": "array",
+                        "format": "table",
+                        "items": {
+                          "type": "number"
+                        },
+                        "minItems": 3,
+                        "maxItems": 3
+                      },
+                      "C1": {
+                        "title": "Axis Center 2",
+                        "type": "array",
+                        "format": "table",
+                        "items": {
+                          "type": "number"
+                        },
+                        "minItems": 3,
+                        "maxItems": 3
+                      },
+                      "R": {
+                        "title": "Radius",
+                        "type": "number",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "title": "Name",
+                "type": "object",
+                "required": [
+                  "Name"
+                ],
+                "properties": {
+                  "Name": {
+                    "type": "string",
+                    "default": ""
+                  }
+                }
+              },
+              {
+                "title": "Origin",
+                "type": "object",
+                "required": [
+                  "Origin"
+                ],
+                "properties": {
+                  "Origin": {
                     "title": "Origin",
                     "type": "array",
-		    "format": "table",
-		    "items": {
-			    "type": "number",
-			    "minimum": 0,
-			    "default": 0
-		    },
-		    "minItems": 3,
-		    "maxItems": 3
-		}
-              }
-            },
-            {
-              "title": "XLayers",
-              "type": "object",
-              "required": ["XLayers"],
-              "properties": {
-		"XLayers":{
+                    "format": "table",
+                    "items": {
+                      "type": "number",
+                      "minimum": 0,
+                      "default": 0
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  }
+                }
+              },
+              {
+                "title": "XLayers",
+                "type": "object",
+                "required": [
+                  "XLayers"
+                ],
+                "properties": {
+                  "XLayers": {
                     "title": "XLayers",
                     "type": "array",
-		    "format": "table",
-		    "items": {
-			    "type": "array",
-		            "format": "table",
-			    "items": {
-				    "type": "integer",
-				    "minimum": 0,
-				    "default": 0
-			    },
-			    "minItems": 3,
-			    "maxItems": 3
-		    }
-		}
-              }
-            },
-            {
-              "title": "YLayers",
-              "type": "object",
-              "required": ["YLayers"],
-              "properties": {
-		"YLayers":{
+                    "format": "table",
+                    "items": {
+                      "type": "array",
+                      "format": "table",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "default": 0
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    }
+                  }
+                }
+              },
+              {
+                "title": "YLayers",
+                "type": "object",
+                "required": [
+                  "YLayers"
+                ],
+                "properties": {
+                  "YLayers": {
                     "title": "YLayers",
                     "type": "array",
-		    "format": "table",
-		    "items": {
-			    "type": "array",
-		            "format": "table",
-			    "items": {
-				    "type": "integer",
-				    "minimum": 0,
-				    "default": 0
-			    },
-			    "minItems": 3,
-			    "maxItems": 3
-		    }
-		}
-              }
-            },
-            {
-              "title": "ZLayers",
-              "type": "object",
-              "required": ["ZLayers"],
-              "properties": {
-		"ZLayers":{
+                    "format": "table",
+                    "items": {
+                      "type": "array",
+                      "format": "table",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "default": 0
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    }
+                  }
+                }
+              },
+              {
+                "title": "ZLayers",
+                "type": "object",
+                "required": [
+                  "ZLayers"
+                ],
+                "properties": {
+                  "ZLayers": {
                     "title": "ZLayers",
                     "type": "array",
-		    "format": "table",
-		    "items": {
-			    "type": "array",
-		            "format": "table",
-			    "items": {
-				    "type": "integer",
-				    "minimum": 0,
-				    "default": 0
-			    },
-			    "minItems": 3,
-			    "maxItems": 3
-		    }
-		}
-              }
-            },
-            {
-              "title": "XSlabs",
-              "type": "object",
-              "required": ["XSlabs"],
-              "properties": {
-		"XSlabs":{
+                    "format": "table",
+                    "items": {
+                      "type": "array",
+                      "format": "table",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "default": 0
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    }
+                  }
+                }
+              },
+              {
+                "title": "XSlabs",
+                "type": "object",
+                "required": [
+                  "XSlabs"
+                ],
+                "properties": {
+                  "XSlabs": {
                     "title": "XSlabs",
                     "type": "object",
-		    "required": [
-		       "Tag",
-		       "Bound"
-		    ],
-  		    "properties": {
-			"Tag": {
-			  "title": "Tag",
-			  "type": "integer",
-			  "minimum": 0
-			},
-			"Bound": {
-			    "title": "Start/End Indices",
-			    "type": "array",
-			    "format": "table",
-			    "items": {
-				    "type": "array",
-				    "format": "table",
-				    "items": {
-					    "type": "integer",
-					    "minimum": 0,
-					    "default": 0
-				    },
-				    "minItems": 2,
-				    "maxItems": 2
-			    }
-			}
-		    }
-		}
-	      }
-            },
-            {
-              "title": "YSlabs",
-              "type": "object",
-              "required": ["YSlabs"],
-              "properties": {
-		"YSlabs":{
+                    "required": [
+                      "Tag",
+                      "Bound"
+                    ],
+                    "properties": {
+                      "Tag": {
+                        "title": "Tag",
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "Bound": {
+                        "title": "Start/End Indices",
+                        "type": "array",
+                        "format": "table",
+                        "items": {
+                          "type": "array",
+                          "format": "table",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "default": 0
+                          },
+                          "minItems": 2,
+                          "maxItems": 2
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "title": "YSlabs",
+                "type": "object",
+                "required": [
+                  "YSlabs"
+                ],
+                "properties": {
+                  "YSlabs": {
                     "title": "YSlabs",
                     "type": "object",
-		    "required": [
-		       "Tag",
-		       "Bound"
-		    ],
-  		    "properties": {
-			"Tag": {
-			  "title": "Tag",
-			  "type": "integer",
-			  "minimum": 0
-			},
-			"Bound": {
-			    "title": "Start/End Indices",
-			    "type": "array",
-			    "format": "table",
-			    "items": {
-				    "type": "array",
-				    "format": "table",
-				    "items": {
-					    "type": "integer",
-					    "minimum": 0,
-					    "default": 0
-				    },
-				    "minItems": 2,
-				    "maxItems": 2
-			    }
-			}
-		    }
-		}
-	      }
-            },
-            {
-              "title": "ZSlabs",
-              "type": "object",
-              "required": ["ZSlabs"],
-              "properties": {
-		"ZSlabs":{
+                    "required": [
+                      "Tag",
+                      "Bound"
+                    ],
+                    "properties": {
+                      "Tag": {
+                        "title": "Tag",
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "Bound": {
+                        "title": "Start/End Indices",
+                        "type": "array",
+                        "format": "table",
+                        "items": {
+                          "type": "array",
+                          "format": "table",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "default": 0
+                          },
+                          "minItems": 2,
+                          "maxItems": 2
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "title": "ZSlabs",
+                "type": "object",
+                "required": [
+                  "ZSlabs"
+                ],
+                "properties": {
+                  "ZSlabs": {
                     "title": "ZSlabs",
                     "type": "object",
-		    "required": [
-		       "Tag",
-		       "Bound"
-		    ],
-  		    "properties": {
-			"Tag": {
-			  "title": "Tag",
-			  "type": "integer",
-			  "minimum": 0
-			},
-			"Bound": {
-			    "title": "Start/End Indices",
-			    "type": "array",
-			    "format": "table",
-			    "items": {
-				    "type": "array",
-				    "format": "table",
-				    "items": {
-					    "type": "integer",
-					    "minimum": 0,
-					    "default": 0
-				    },
-				    "minItems": 2,
-				    "maxItems": 2
-			    }
-			}
-		    }
-		}
-	      }
+                    "required": [
+                      "Tag",
+                      "Bound"
+                    ],
+                    "properties": {
+                      "Tag": {
+                        "title": "Tag",
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "Bound": {
+                        "title": "Start/End Indices",
+                        "type": "array",
+                        "format": "table",
+                        "items": {
+                          "type": "array",
+                          "format": "table",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "default": 0
+                          },
+                          "minItems": 2,
+                          "maxItems": 2
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "_ArrayType_",
+            "_ArraySize_",
+            "_ArrayZipType_",
+            "_ArrayZipSize_",
+            "_ArrayZipData_"
+          ],
+          "properties": {
+            "_ArrayType_": {
+              "type": "string",
+              "default": "uint8",
+              "enum": [
+                "uint8",
+                "uint16",
+                "uint32",
+                "int8",
+                "int16",
+                "int32",
+                "single"
+              ]
+            },
+            "_ArraySize_": {
+              "type": "array",
+              "default": [
+                0,
+                0,
+                0
+              ],
+              "format": "table",
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "_ArrayZipType_": {
+              "type": "string",
+              "default": "zlib",
+              "enum": [
+                "zlib",
+                "gzip"
+              ]
+            },
+            "_ArrayZipSize_": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "default": 0,
+                  "minimum": 0
+                },
+                {
+                  "type": "array",
+                  "default": [
+                    0,
+                    0
+                  ],
+                  "format": "table",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              ]
+            },
+            "_ArrayZipData_": {
+              "type": "string",
+              "default": ""
             }
-          ]
-	}
-      },
-      {
-            "type": "object",
-            "required": ["_ArrayType_","_ArraySize_","_ArrayZipType_","_ArrayZipSize_","_ArrayZipData_"],
-            "properties": {
-	      "_ArrayType_":{
-		  "type": "string",
-		  "default": "uint8",
-		  "enum": [
-			"uint8",
-			"uint16",
-			"uint32",
-			"int8",
-			"int16",
-			"int32",
-			"single"
-		      ]
-	      },
-	      "_ArraySize_":{
-		  "type": "array",
-		  "default": [0,0,0],
-		  "format": "table",
-		  "items": {
-		      "type": "integer",
-		      "minimum": 0
-		  },
-	          "minItems": 3,
-	          "maxItems": 3
-	      },
-	      "_ArrayZipType_":{
-		  "type": "string",
-		  "default": "zlib",
-		  "enum": [
-			"zlib",
-			"gzip"
-		      ]
-	      },
-	      "_ArrayZipSize_":{
-	          "oneOf" :[
-		      {
-			  "type": "integer",
-			  "default": 0,
-			  "minimum": 0
-		      },
-		      {
-			  "type": "array",
-			  "default": [0,0],
-			  "format": "table",
-			  "items": {
-			      "type": "integer",
-			      "minimum": 0
-			  },
-			  "minItems": 2,
-			  "maxItems": 2
-		      }
-		  ]
-	      },
-	      "_ArrayZipData_":{
-		  "type": "string",
-		  "default": ""
-	      }
-	    }
-	}
+          }
+        }
       ]
     },
     "Domain": {
@@ -1443,27 +1572,29 @@ img.simupreview{
           "minItems": 3,
           "maxItems": 3
         },
-	"LengthUnit": {
+        "LengthUnit": {
           "title": "Voxel Size (in mm)",
           "type": "number",
           "default": 1,
           "minimum": 0
-	},
-	"MediaFormat": {
+        },
+        "MediaFormat": {
           "title": "Binary Volume Format",
           "type": "string",
-	  "default": "byte",
+          "default": "byte",
           "enum": [
-                "byte",
-                "short",
-		"svmc",
-		"mixlabel",
-                "labelplus",
-		"muamus_float",
-		"muamus_half",
-		"asgn_byte",
-		"muamus_short"
-              ]
+            "byte",
+            "short",
+            "integer",
+            "asgn_float",
+            "svmc",
+            "mixlabel",
+            "labelplus",
+            "muamus_float",
+            "muamus_half",
+            "asgn_byte",
+            "muamus_short"
+          ]
         },
         "VolumeFile": {
           "title": "Volume File",
@@ -1516,6 +1647,7 @@ img.simupreview{
     }
   }
 }
+
 
 function createFragmentShader(mode) {
   return [
@@ -1815,6 +1947,8 @@ var IsoRenderShader = {
     schema: defaultSchema,
     show_errors: 'interaction',
     theme: 'spectre',
+    display_required_only: false,
+    show_opt_in: true,
     no_additional_properties: true
   }
 
@@ -2100,8 +2234,13 @@ var IsoRenderShader = {
 
   /* ------------------------------------------------------- updateDirectLink */
 
-  var updateDirectLink = function () {
+  var updateDirectLink = function (jobid) {
     var url = window.location.href.replace(/\?.*/, '').replace(/#$/,'')
+    if(jobid !== 'undefined') {
+        url += '?tab=preview&jobid=' + jobid
+        directLink.href = url
+        return
+    }
     url += '?tab=preview&data='
     let linkdata={options: Object.assign({},data.options)};
     delete linkdata.options.schema;
@@ -2330,11 +2469,12 @@ function jobstatus() {
       type: 'GET',
       crossOrigin: true,
       dataType: 'jsonp',
-      jsonp: 'callback',
       jsonpCallback: 'addlog',
       success: function( data ){},
       error: function(xhr,status,error) {
-          $("#run-log").val($("#run-log").val()+"\n"+"jobstatus error: "+status);
+          if(xhr.getResponseHeader("Content-Length") != null) {
+              $("#run-log").val($("#run-log").val()+"\n"+"jobstatus error: "+status);
+          }
       }
   });
 }
@@ -2666,10 +2806,22 @@ function drawvolume(volume){
     int32:THREE.IntType,
     float32:THREE.FloatType
   };
-  const dim=volume.shape;
-  const buf=nj.array(volume.transpose().flatten().selection.data, 'float32');
+  lastvolumedim=volume.shape;
+  const dim=lastvolumedim;
 
-  const texture = new THREE.DataTexture3D( buf.selection.data, dim[0], dim[1], dim[2]);
+  $("#cross-t").prop( "disabled", true );
+
+  if(dim.length > 3 && dim[3] > 0) {
+    $('#cross-t').prop('min', 0);
+    $('#cross-t').prop('max', dim[3]-1);
+    $('#cross-t').val(0);
+    $("#cross-t").prop( "disabled", false );
+    $("#cross-t").prop('title', ''+$("#cross-t").val()+' ['+$("#cross-t").prop('min')+','+$("#cross-t").prop('max')+']');
+  }
+
+  lastvolumedata=nj.array(volume.transpose().flatten().selection.data, 'float32');
+
+  const texture = new THREE.DataTexture3D( lastvolumedata.selection.data, dim[0], dim[1], dim[2]);
   texture.format = THREE.RedFormat;
   texture.type = THREE.FloatType;
   texture.minFilter = texture.magFilter = THREE.LinearFilter;
@@ -2708,6 +2860,10 @@ function drawvolume(volume){
   $("#clim-hi").prop('max',lastclim.y);
   $("#clim-hi").val(lastclim.y);
 
+  $("#x_thickness").prop('max',dim[0]);
+  $("#y_thickness").prop('max',dim[1]);
+  $("#z_thickness").prop('max',dim[2]);
+
   const material = new THREE.ShaderMaterial( {
 	  uniforms: uniforms,
 	  vertexShader: shader.vertexShader,
@@ -2734,6 +2890,9 @@ function drawpreview(cfg){
      if(isWebGL2Available()){
        let jd=new jdata(cfg.Shapes,{});
        let vol=jd.decode().data;
+       if(cfg.Shapes.hasOwnProperty('_ArrayOrder_') && cfg.Shapes._ArrayOrder_.match(/^[cC]/)) {
+          vol.colmajor=1;
+       }
        lastvolume=drawvolume(vol);
        boundingbox.add( lastvolume );
      }
@@ -2758,6 +2917,9 @@ function drawpreview(cfg){
      if(isWebGL2Available()){
        let jd=new jdata(cfg.NIFTIData,{});
        let vol=jd.decode().data;
+       if(cfg.NIFTIData.hasOwnProperty('_ArrayOrder_') && cfg.NIFTIData._ArrayOrder_.match(/^[cC]/)) {
+          vol.colmajor=1;
+       }
        lastvolume=drawvolume(nj.log(nj.clip(vol, 1e-16, 1/0)) );
        boundingbox.add( lastvolume );
      }
@@ -2867,7 +3029,7 @@ function searchpub(offset){
       success: function( data ){
       },
       error: function(xhr,status,error) {
-         alert("searchpub error: "+status);
+         alert("searchpub error: "+status + ". The selected server is down. Please choose an alternative server from the 'Choose server' menu.");
       }
   });
 }
@@ -2916,7 +3078,26 @@ function setuserinfo() {
   storage.userinfo = JSON.stringify({ fullname: $("#fullname").val(), inst: $("#inst").val(), email: $("#email").val(), netname: $("#netname").val()});
 }
 
-function setcrosssectionsizes() {
+function setcrosssectionsizes(e) {
+  let eid=$(e).attr('id');
+  let deltaeid=eid.replace('cross-','').replace(/-(low|hi)$/,'_thickness');
+  let dvalue=parseInt($('#'+deltaeid).val());
+
+  if(dvalue>0) {
+     let othereid='';
+     dvalue /= (eid.match(/-x-/) ? lastvolumedim[0] : (eid.match(/-y-/) ? lastvolumedim[1]: lastvolumedim[2]));
+
+     if(eid.match(/-low/)) {
+        othereid='#'+eid.replace(/-low$/, '-hi');
+        $(othereid).val(Math.min(parseFloat($(e).val())+dvalue, 1))
+     } else {
+        othereid='#'+eid.replace(/-hi$/, '-low');
+        $(othereid).val(Math.max(parseFloat($(e).val())-dvalue, 0))
+     }
+     $(othereid).prop('title', ''+$(othereid).val()+' ['+$(othereid).prop('min')+','+$(othereid).prop('max')+']');
+  }
+
+  $(e).prop('title', ''+$(e).val()+' ['+$(e).prop('min')+','+$(e).prop('max')+']');
   if(lastvolume !== null){
     lastvolume.material.uniforms[ "u_minslice" ].value.set( parseFloat($("#cross-x-low").val()), parseFloat($("#cross-y-low").val()), parseFloat($("#cross-z-low").val()) );
     lastvolume.material.uniforms[ "u_maxslice" ].value.set( parseFloat($("#cross-x-hi").val()), parseFloat($("#cross-y-hi").val()), parseFloat($("#cross-z-hi").val()) );
@@ -3019,6 +3200,8 @@ var stats = createStats();
 document.getElementById('renderpanel').appendChild( stats.domElement );
 
 var lastvolume=null;
+var lastvolumedim=[];
+var lastvolumedata=null;
 var lastloaded=null;
 var lastclim=0;
 var reqid=undefined;
@@ -3087,27 +3270,58 @@ $("#iso-radio-button").on('change', function() {
 });
 
 $("#cross-x-low").on('input', function() {
-    setcrosssectionsizes();
+    setcrosssectionsizes(this);
 });
 
 $("#cross-y-low").on('input', function() {
-    setcrosssectionsizes();
+    setcrosssectionsizes(this);
 });
 
 $("#cross-z-low").on('input', function() {
-    setcrosssectionsizes();
+    setcrosssectionsizes(this);
 });
 
 $("#cross-x-hi").on('input', function() {
-    setcrosssectionsizes();
+    setcrosssectionsizes(this);
 });
 
 $("#cross-y-hi").on('input', function() {
-    setcrosssectionsizes();
+    setcrosssectionsizes(this);
 });
 
 $("#cross-z-hi").on('input', function() {
-    setcrosssectionsizes();
+    setcrosssectionsizes(this);
+});
+
+$("#x_thickness, #y_thickness, #z_thickness").on('input', function() {
+    let eid=$(this).attr('id');
+    let linkedeid1=eid.replace(/_thickness/,'-low').replace(/^/,'cross-');
+    let linkedeid2=eid.replace(/_thickness/,'-hi').replace(/^/,'cross-');
+    if($(this).val() == 0) {
+      $('#'+linkedeid1).val(0);
+      $('#'+linkedeid2).val(1);
+    } else {
+      $('#'+linkedeid1).val(($('#'+linkedeid1).val() + $('#'+linkedeid2).val())*0.5);
+    }
+    setcrosssectionsizes($('#'+linkedeid1));
+});
+
+$('#cross-t').on('mouseup', function() {
+  $(this).prop('title', ''+$(this).val()+' ['+$(this).prop('min')+','+$(this).prop('max')+']');
+  if(lastvolume !== null && lastvolumedata !== undefined){
+    let dim = lastvolumedim;
+    let offset=$(this).val()*dim[0]*dim[1]*dim[2];
+
+    let texture = new THREE.DataTexture3D(lastvolumedata.selection.data.slice(offset, offset+dim[0]*dim[1]*dim[2]), dim[0], dim[1], dim[2]);
+    texture.format = THREE.RedFormat;
+    texture.type = THREE.FloatType;
+    texture.minFilter = texture.magFilter = THREE.LinearFilter;
+    texture.unpackAlignment = 1;
+    texture.needsUpdate = true;
+
+    lastvolume.material.uniforms[ "u_data" ].value = texture;
+    renderer.updateComplete = false;
+ }
 });
 
 function setControlAngles(polar, azimuth) {
@@ -3125,6 +3339,10 @@ function setControlAngles(polar, azimuth) {
   controls.minPolarAngle = mip;
   controls.maxPolarAngle = mxp;
 }
+
+$('#submitserver').on('change', function() {
+  serverurl="https://"+$(this).val()+".coe.neu.edu/mcxcloud/mcxserver.cgi";
+})
 
 $("#pos-x-view").on('click', function() {
   setControlAngles(Math.PI * 90 / 180, Math.PI * 90 / 180);

@@ -5,9 +5,10 @@
 ############################################################
 
 PKGNAME=mcx
-VERSION=1.9.7
+VERSION=2.6.0
 SOURCE=src
 GUI=mcxstudio
+COPY=cp
 
 all: bin gui mex deb rpm
 
